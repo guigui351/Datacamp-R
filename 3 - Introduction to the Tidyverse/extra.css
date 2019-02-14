@@ -1,0 +1,17 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+h1, .h1, h2, .h2, h3, .h3 {
+    margin-top: 84px;
+}
+
+p.caption {
+  font-size: 0.9em;
+  font-style: italic;
+  color: red;
+  margin-right: 10%;
+  margin-left: 10%;  
+  text-align: justify;
+}

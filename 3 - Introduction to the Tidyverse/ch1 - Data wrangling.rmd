@@ -6,7 +6,7 @@ output:
   prettydoc::html_pretty:
     theme: cayman
     highlight: github
-    css: style.scss
+    css: ["default", "extra.css"]
     includes:
       after_body: footer.html
 ---
@@ -75,7 +75,7 @@ gapminder %>%
 You use `arrange()` to sort observations in ascending or descending order of a particular variable. In this case, you'll sort the dataset based on the `lifeExp` variable.  
 
 ```{r}
-# Sort in desscending order of lifeExp
+# Sort in descending order of lifeExp
 gapminder %>%
   select("country", "lifeExp") %>% 
   arrange(desc(lifeExp)) %>% 
@@ -110,4 +110,5 @@ gapminder %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
   row_spec(0, bold = T, color = "white", background = "#3f7689")
 ```
+
 
