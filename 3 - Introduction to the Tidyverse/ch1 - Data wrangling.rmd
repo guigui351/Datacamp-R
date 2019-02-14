@@ -1,0 +1,113 @@
+---
+title: "TidyVerse - Data wrangling"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: style.scss
+    includes:
+      after_body: footer.html
+---
+
+
+##Data wrangling 
+
+####Loading the gapminder and dplyr packages  
+
+Before you can work with the gapminder dataset, you'll need to load two R packages that contain the tools for working with it, then display the gapminder dataset so that you can see what it contains.  
+
+```{r, echo=TRUE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+```
+
+```{r}
+# Look at the gapminder dataset
+gapminder %>%
+  kable(caption = "Gapminder dataset") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689") %>%
+  scroll_box(width = "100%", height = "300px")
+```
+
+
+####Filtering for one year  
+
+The `filter` verb extracts particular observations based on a condition. In this exercise you'll filter for observations from a particular year.  
+
+```{r}
+# Filter the gapminder dataset for the year 1957
+gapminder %>%
+  filter(year == 1957) %>% 
+  head %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Filtering for one country and one year  
+
+You can also use the `filter()` verb to set two conditions, which could retrieve a single observation.  
+
+Just like in the last exercise, you can do this in two lines of code, starting with `gapminder %>%` and having the `filter()` on the second line. Keeping one verb on each line helps keep the code readable. Note that each time, you'll put the `pipe %>%` at the end of the first line (like `gapminder %>%`); putting the pipe at the beginning of the second line will throw an error.  
+
+```{r}
+# Filter for China in 2002
+gapminder %>%
+  filter(country == "China", year== 2002) %>% 
+  kable(caption = "GDB of China in 2002") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+#### Arranging observations by life expectancy  
+
+You use `arrange()` to sort observations in ascending or descending order of a particular variable. In this case, you'll sort the dataset based on the `lifeExp` variable.  
+
+```{r}
+# Sort in desscending order of lifeExp
+gapminder %>%
+  select("country", "lifeExp") %>% 
+  arrange(desc(lifeExp)) %>% 
+  head(5) %>%
+  kable(caption = "5 top countries with the highest life expectancy") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+
+# Sort in ascending order of lifeExp
+gapminder %>%
+  select("country", "lifeExp") %>% 
+  arrange(lifeExp) %>% 
+  head(5) %>%
+  kable(caption = "5 top countries with the lowest life expectancy") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Filtering and arranging  
+
+You'll often need to use the pipe operator (`%>%`) to combine multiple `dplyr` verbs in a row. In this case, you'll combine a `filter()` with an `arrange()` to find the highest population countries in a particular year.  
+
+```{r}
+# Filter for the year 1957, then arrange in descending order of population
+gapminder %>%
+  filter(year == 1957) %>%
+  arrange(desc(pop)) %>%
+  head(5) %>%
+  kable(caption = "Highest population countries in 1957", font_size = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
