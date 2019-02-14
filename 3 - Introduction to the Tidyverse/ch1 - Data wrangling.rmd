@@ -6,11 +6,15 @@ output:
   prettydoc::html_pretty:
     theme: cayman
     highlight: github
-    css: ["default", "extra.css"]
     includes:
       after_body: footer.html
 ---
 
+<style type="text/css">
+p.caption {
+  font-size: 8px;
+}
+</style>
 
 ##Data wrangling 
 
@@ -106,9 +110,50 @@ gapminder %>%
   filter(year == 1957) %>%
   arrange(desc(pop)) %>%
   head(5) %>%
-  kable(caption = "Highest population countries in 1957", font_size = 2) %>%
+  kable(caption = "Highest population countries in 1957") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
   row_spec(0, bold = T, color = "white", background = "#3f7689")
 ```
+
+
+####Using mutate to change or create a column  
+
+Suppose we want life expectancy to be measured in months instead of years: you'd have to multiply the existing value by 12. You can use the `mutate()` verb to change this column, or to create a new column that's calculated this way.  
+
+```{r}
+# Use mutate to change lifeExp to be in months
+gapminder %>%
+  mutate(lifeExp = 12 * lifeExp) %>%
+  head(5) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Use mutate to create a new column called lifeExpMonths
+gapminder %>%
+  mutate(lifeExpMonths = 12 * lifeExp) %>%
+  tail(5) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Combining filter, mutate, and arrange  
+
+In this exercise, you'll combine all three of the verbs you've learned in this chapter, to find the countries with the highest life expectancy, in months, in the year 2007.  
+
+```{r}
+# Filter, mutate, and arrange the gapminder dataset
+gapminder %>%
+  filter(year == 2007) %>%
+  mutate(lifeExpMonths = lifeExp * 12) %>%
+  arrange(desc(lifeExpMonths)) %>%
+  head(10) %>%
+  kable(caption = "Countries with the highest life expectancy (months)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
 
 
