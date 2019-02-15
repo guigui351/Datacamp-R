@@ -7,14 +7,9 @@ output:
     theme: cayman
     highlight: github
     includes:
+#     before_body: header.html
       after_body: footer.html
 ---
-
-<style type="text/css">
-p.caption {
-  font-size: 8px;
-}
-</style>
 
 ##Data wrangling 
 
@@ -33,11 +28,12 @@ library(gapminder)
 library(dplyr)
 ```
 
+
 ```{r}
 # Look at the gapminder dataset
 gapminder %>%
   kable(caption = "Gapminder dataset") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T, position = "left", , font_size = 11) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", , font_size = 11) %>%
   row_spec(0, bold = T, color = "white", background = "#3f7689") %>%
   scroll_box(width = "100%", height = "300px")
 ```

@@ -1,0 +1,203 @@
+---
+title: "TidyVerse - Grouping and summarizing"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: footer.html
+---
+
+##Grouping and summarizing
+
+####Summarizing the median life expectancy  
+
+You've seen how to find the mean life expectancy and the total population across a set of observations, but `mean()` and `sum()` are only two of the functions R provides for summarizing a collection of numbers. Here, you'll learn to use the `median()` function in combination with `summarize()`.  
+
+By the way, `dplyr` displays some messages when it's loaded that we've been hiding so far. They'll show up in red and start with:  
+
+> `Attaching package: 'dplyr'`  
+> `The following objects are masked from 'package:stats':`  
+
+This will occur in future exercises each time you load `dplyr`: it's mentioning some built-in functions that are overwritten by `dplyr`. You won't need to worry about this message within this course.  
+
+```{r, echo=TRUE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+```{r}
+# Summarize to find the median life expectancy
+gapminder %>%
+  summarize(medianLifeExp = median(lifeExp)) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Summarizing the median life expectancy in 1957  
+
+Rather than summarizing the entire dataset, you may want to find the median life expectancy for only one particular year. In this case, you'll find the median in the year 1957.  
+
+```{r}
+# Filter for 1957 then summarize the median life expectancy
+gapminder %>%
+  filter(year == 1957) %>%
+  summarize(medianLifeExp = median(lifeExp)) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Summarizing multiple variables in 1957    
+
+The `summarize()` verb allows you to summarize multiple variables at once. In this case, you'll use the `median()` function to find the median life expectancy and the `max()` function to find the maximum GDP per capita.  
+
+```{r}
+# Filter for 1957 then summarize the median life expectancy and the maximum GDP per capita
+gapminder  %>%
+   filter(year == 1957) %>%
+   summarize(medianLifeExp = median(lifeExp), maxGdpPercap= max(gdpPercap)) %>% 
+   kable() %>%
+   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+   row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Summarizing by year  
+
+Now, you'll perform those two summaries within each year in the dataset, using the group_by verb.  
+
+```{r}
+# Find median life expectancy and maximum GDP per capita in each year
+gapminder %>%
+   group_by(year) %>%
+   summarize(medianLifeExp = median(lifeExp), maxGdpPercap = max(gdpPercap)) %>% 
+   kable() %>%
+   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+   row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+*Interesting: notice that median life expectancy across countries is generally going up over time, but maximum GDP per capita is not.*  
+
+
+####Summarizing by continent  
+
+You can group by any variable in your dataset to create a summary. Rather than comparing across time, you might be interested in comparing among continents. You'll want to do that within one year of the dataset: let's use 1957.  
+
+```{r}
+# Find median life expectancy and maximum GDP per capita in each continent in 1957
+gapminder %>%
+   filter(year == 1957) %>%
+   group_by(continent) %>%
+   summarize(medianLifeExp = median(lifeExp), maxGdpPercap = max(gdpPercap)) %>% 
+   kable() %>%
+   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+   row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Summarizing by continent and year  
+
+Instead of grouping just by year, or just by continent, you'll now group by both continent and year to summarize within each.  
+
+```{r}
+gapminder %>%
+   group_by(continent, year) %>%
+   summarize(medianLifeExp = median(lifeExp), maxGdpPercap = max(gdpPercap)) %>% 
+   kable() %>%
+   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+   row_spec(0, bold = T, color = "white", background = "#3f7689") %>% 
+   scroll_box(width = "100%", height = "300px")
+```
+
+
+
+##Visualizing summarized data  
+
+####Visualizing median life expectancy over time  
+
+In the last chapter, you summarized the gapminder data to calculate the median life expectancy within each year. Created as the `by_year` dataset.  
+
+Now you can use the `ggplot2` package to turn this into a visualization of changing life expectancy over time.  
+
+```{r}
+by_year <- gapminder %>%
+  group_by(year) %>%
+  summarize(medianLifeExp = median(lifeExp),
+            maxGdpPercap = max(gdpPercap))
+```
+
+```{r}
+# Create a scatter plot showing the change in medianLifeExp over time
+ggplot(by_year, aes(x = year, y = medianLifeExp)) +
+   geom_point() +
+   expand_limits(y = 0) +
+   labs(subtitle="Life expectancy over time", 
+        y="Life expectancy", 
+        x="Year", 
+        title="Scatterplot", 
+        caption = "")
+```
+
+*It looks like median life expectancy across countries is increasing over time.*  
+
+
+####Visualizing median GDP per capita per continent over time  
+
+In the last exercise you were able to see how the median life expectancy of countries changed over time. Now you'll examine the median GDP per capita instead, and see how the trend differs among continents.  
+
+```{r}
+# Summarize medianGdpPercap within each continent within each year:
+by_year_continent <- gapminder %>%
+   group_by(continent, year) %>%
+   summarize(medianGdpPercap = median(gdpPercap))
+
+# Plot the change in medianGdpPercap in each continent over time
+ggplot(by_year_continent, aes(x = year, y = medianGdpPercap, color = continent)) +
+   geom_point() +
+   expand_limits(y = 0) +
+   labs(subtitle="Median GDP per capita over time by continent", 
+        y="GDP per capita", 
+        x="Year", 
+        title="Scatterplot", 
+        caption = "")
+```
+
+
+####Comparing median life expectancy and median GDP per continent in 2007  
+
+In these exercises you've generally created plots that show change over time. But as another way of exploring your data visually, you can also use ggplot2 to plot summarized data to compare continents within a single year.  
+
+```{r}
+# Summarize the median GDP and median life expectancy per continent in 2007
+by_continent_2007 <- gapminder %>% 
+   filter(year == 2007) %>% 
+   group_by(continent) %>% 
+   summarize(medianLifeExp = median(lifeExp), medianGdpPercap = median(gdpPercap))
+
+# Use a scatter plot to compare the median GDP and median life expectancy
+ggplot(by_continent_2007, aes(x = medianGdpPercap, y = medianLifeExp, color = continent)) +
+   geom_point() +
+   expand_limits(y = 0) +
+   labs(subtitle="Median life expectancy with median GDP per continent in 2007", 
+        y="Median Life expectancy", 
+        x="Median GDP per capita", 
+        title="Scatterplot", 
+        caption = "")
+```
+

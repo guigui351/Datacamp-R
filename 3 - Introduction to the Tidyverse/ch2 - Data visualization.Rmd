@@ -1,0 +1,199 @@
+---
+title: "TidyVerse - Data visualization"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: footer.html
+---
+
+##Data visualization  
+
+####Variable assignment  
+
+Throughout the exercises in this chapter, you'll be visualizing a subset of the gapminder data from the year 1952. First, you'll have to load the `ggplot2` package, and create a `gapminder_1952` dataset to visualize.  
+
+```{r, echo=TRUE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+```{r}
+# Create gapminder_1952
+gapminder_1952 <- gapminder %>%
+    filter(year == 1952)
+```
+
+```{r}
+# Look at the gapminder_1952 dataset
+gapminder_1952 %>%
+  kable(caption = "Gapminder from 1952") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689") %>%
+  scroll_box(width = "100%", height = "300px")
+```
+
+
+####Comparing population and GDP per capita 
+
+In the video you learned to create a scatter plot with GDP per capita on the x-axis and life expectancy on the y-axis (the code for that graph is shown here). When you're exploring data visually, you'll often need to try different combinations of variables and aesthetics.  
+
+```{r}
+ggplot(gapminder_1952, aes(x = pop, y = gdpPercap)) +
+  geom_point() + 
+  geom_smooth(method="loess", se=F) +
+  labs(subtitle="GDP by capita by population", 
+       y="GDP per capita", 
+       x="Population", 
+       title="Scatterplot", 
+       caption = "")
+```
+
+*Each point represents a country: can you guess which country any of the points are?*  
+
+
+####Comparing population and life expectancy  
+
+In this exercise, you'll use `ggplot2` to create a scatter plot from scratch, to compare each country's population with its life expectancy in the year 1952.  
+
+```{r}
+# Create a scatter plot with pop on the x-axis and lifeExp on the y-axis
+ggplot(gapminder_1952, aes(x = pop, y = lifeExp)) +
+  geom_point()+
+  geom_smooth(method="loess", se=F) +
+  labs(subtitle="Country's population with its life expectancy in the year 1952", 
+       y="Life Expectancy", 
+       x="Population", 
+       title="Scatterplot", 
+       caption = "")
+```
+
+*You might notice the points are crowded towards the left side of the plot, making them hard to distinguish.*  
+
+
+####Putting the x-axis on a log scale  
+
+You previously created a scatter plot with population on the x-axis and life expectancy on the y-axis. Since population is spread over several orders of magnitude, with some countries having a much higher population than others, it's a good idea to put the x-axis on a log scale.  
+
+
+```{r}
+# Change this plot to put the x-axis on a log scale
+ggplot(gapminder_1952, aes(x = pop, y = lifeExp)) +
+  geom_point()+
+  scale_x_log10() +
+  geom_smooth(method="loess", se=F) +
+  labs(subtitle="Country's population (passed into log scale) with its life expectancy in the year 1952", 
+       y="Life Expectancy", 
+       x="Population", 
+       title="Scatterplot", 
+       caption = "")
+```
+
+*Notice the points are more spread out on the x-axis. This makes it easy to see that there isn't a correlation between population and life expectancy.*
+
+
+####Putting the x- and y- axes on a log scale  
+
+Suppose you want to create a scatter plot with population on the x-axis and GDP per capita on the y-axis. Both population and GDP per-capita are better represented with log scales, since they vary over many orders of magnitude.  
+
+```{r}
+# Scatter plot comparing pop and gdpPercap, with both axes on a log scale
+ggplot(gapminder_1952, aes(x = pop, y = gdpPercap)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() + 
+  geom_smooth(method="loess", se=F) +
+  labs(subtitle="Country's population (log scale) with GDP by capita (log scale) in the year 1952", 
+       y="GDP by capita", 
+       x="Population", 
+       title="Scatterplot", 
+       caption = "")
+```
+
+*Notice that the y-axis goes from 1e3 (1000) to 1e4 (10,000) to 1e5 (100,000) in equal increments.*  
+
+####Adding color to a scatter plot  
+
+In this lesson you learned how to use the color aesthetic (`color` and `pop`), which can be used to show which continent each point in a scatter plot represents.  
+
+```{r}
+# Scatter plot comparing pop and lifeExp, with color representing continent
+ggplot(gapminder_1952, aes(x = pop, y = lifeExp, color = continent))+
+  geom_point() +
+  scale_x_log10() +
+  labs(subtitle="Country's population (log scale) with Life expectancy in the year 1952", 
+       y="Life expectancy", 
+       x="Population", 
+       title="Scatterplot colored by continent", 
+       caption = "")
+```
+
+
+####Adding size and color to a plot  
+
+In the last exercise, you created a scatter plot communicating information about each country's population, life expectancy, and continent. Now you'll use the `size` of the points to communicate even more.  
+
+```{r}
+# Add the size aesthetic to represent a country's gdpPercap
+ggplot(gapminder_1952, aes(x = pop, y = lifeExp, color = continent, size = gdpPercap)) +
+  geom_point() +
+  scale_x_log10() +
+  labs(subtitle="Country's population (log scale) with Life expectancy in the year 1952", 
+       y="Life expectancy", 
+       x="Population", 
+       title="Scatterplot colored by continent, size by GDB by capita", 
+       caption = "")
+```
+
+
+####Creating a subgraph for each continent  
+
+You've learned to use `faceting` to divide a graph into subplots based on one of its variables, such as the continent.  
+
+```{r}
+# Scatter plot comparing pop and lifeExp, faceted by continent
+ggplot(gapminder_1952, aes(x = pop, y =lifeExp)) +
+  geom_point() +
+  scale_x_log10() +
+  facet_wrap(~ continent) +
+  labs(subtitle="Country's population (log scale) with Life expectancy in the year 1952 by Continent", 
+       y="Life expectancy", 
+       x="Population", 
+       title="Scatterplot of each continent", 
+       caption = "")
+```
+
+*Faceting is a powerful way to understand subsets of your data separately.*  
+
+####Faceting by year  
+
+All of the graphs in this chapter have been visualizing statistics within one year. Now that you're able to use faceting, however, you can create a graph showing all the country-level data from 1952 to 2007, to understand how global statistics have changed over time.  
+
+```{r}
+# Scatter plot comparing gdpPercap and lifeExp, with color representing continent
+# and size representing population, faceted by year
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, color = continent, size = pop)) + 
+  geom_point() +
+  scale_x_log10() + 
+  facet_wrap(~ year) +
+  labs(subtitle="GDB per capita (log scale) with Life expectancy by Continent and size population", 
+       y="Life expectancy", 
+       x="GDP per Capita", 
+       title="Scatterplot, every 5 years from 1952 to 2007", 
+       caption = "")
+
+```
+

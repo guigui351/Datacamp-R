@@ -1,0 +1,189 @@
+---
+title: "TidyVerse - Types of visualizations"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: footer.html
+---
+
+##Types of visualizations 
+
+###1 - Line plot   
+
+####Visualizing median GDP per capita over time  
+
+A `line plot` is useful for visualizing trends over time. In this exercise, you'll examine how the median GDP per capita has changed over time.  
+
+```{r, echo=TRUE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+```{r}
+# Summarize the median gdpPercap by year, then save it as by_year
+by_year <- gapminder %>%
+   group_by(year) %>%
+   summarize(medianGdpPercap = median(gdpPercap))
+
+# Create a line plot showing the change in medianGdpPercap over time
+ggplot(by_year, aes(x = year, y = medianGdpPercap)) +
+   geom_line() + 
+   expand_limits(y = 0) +
+   labs(subtitle="Median GDP per capita over time", 
+        y="GDP per capita", 
+        x="Year", 
+        title="Line plot", 
+        caption = "")
+```
+
+*Looks like median GDP per capita across countries has gone up over time.*
+
+
+####Visualizing median GDP per capita by continent over time  
+
+In the last exercise you used a `line plot` to visualize the increase in median GDP per capita over time. Now you'll examine the change within each continent.  
+
+```{r}
+# Summarize the median gdpPercap by year & continent, save as by_year_continent
+by_year_continent <- gapminder %>%
+   group_by(year, continent) %>%
+   summarize(medianGdpPercap = median(gdpPercap))
+
+# Create a line plot showing the change in medianGdpPercap by continent over time
+ggplot(by_year_continent, aes(x = year, y=medianGdpPercap, color= continent)) +
+   geom_line() +
+   expand_limits(y = 0) +
+   labs(subtitle="Median GDP per capita over time by continent", 
+        y="GDP per capita", 
+        x="Year", 
+        title="Line plot", 
+        caption = "")
+```
+
+*Did the growth in median GDP per capita differ between continents?*
+
+
+###2 - Bar plot  
+
+####Visualizing median GDP per capita by continent  
+
+A bar plot is useful for visualizing summary statistics, such as the median GDP in each continent.  
+
+```{r}
+# Summarize the median gdpPercap by year and continent in 1952
+by_continent <- gapminder %>%
+   filter(year == 1952) %>%
+   group_by(continent) %>%
+   summarize(medianGdpPercap = median(gdpPercap))
+
+# Create a bar plot showing medianGdp by continent
+ggplot(by_continent, aes(x = continent, y = medianGdpPercap)) +
+   geom_col() +
+   labs(subtitle="Median GDP per capita by continent", 
+        y="GDP per capita", 
+        x="Continent", 
+        title="Bar plot", 
+        caption = "")
+```
+
+
+####Visualizing GDP per capita by country in Oceania  
+
+You've created a plot where each bar represents one continent, showing the median GDP per capita for each. But the x-axis of the `bar plot` doesn't have to be the continent: you can instead create a bar plot where each bar represents a country.  
+
+In this exercise, you'll create a `bar plot` comparing the GDP per capita between the two countries in the Oceania continent (Australia and New Zealand).  
+
+```{r}
+# Filter for observations in the Oceania continent in 1952
+oceania_1952 <- gapminder %>%
+   filter(continent == "Oceania", year == 1952)
+
+# Create a bar plot of gdpPercap by country
+ggplot(oceania_1952, aes(x = country, y = gdpPercap)) +
+   geom_col() +
+   labs(subtitle="GDP per capita by country of Oceania", 
+        y="GDP per capita", 
+        x="Country", 
+        title="Bar plot", 
+        caption = "")
+```
+
+
+###3 - Histogram plot  
+
+####Visualizing population  
+
+A `histogram` is useful for examining the distribution of a numeric variable. In this exercise, you'll create a `histogram` showing the distribution of country populations in the year 1952.  
+
+Note: `geom_histogram()` will output a warning that you should pick a better binwidth. Feel free to ignore this here and do not pass a selected binwidth into the function.  
+
+```{r}
+# Dataset with country populations in the year 1952
+gapminder_1952 <- gapminder %>%
+  filter(year == 1952)
+
+# Create a histogram of population (pop)
+ggplot(gapminder_1952, aes(x = pop)) +
+   geom_histogram() +
+   labs(subtitle="Distribution of country populations in the year 1952", 
+        y="Count", 
+        x="Population", 
+        title="Histogram plot", 
+        caption = "")
+```
+
+*Notice that most of the distribution is in the smallest (leftmost) bins. In the next exercise you'll put the x-axis on a log scale.*  
+
+
+####Visualizing population with x-axis on a log scale  
+
+In the last exercise you created a histogram of populations across countries. You might have noticed that there were several countries with a much higher population than others, which causes the distribution to be very skewed, with most of the distribution crammed into a small part of the graph. (Consider that it's hard to tell the median or the minimum population from that histogram).  
+
+To make the histogram more informative, you can try putting the `x-axis on a log scale`.
+
+```{r}
+# Create a histogram of population (pop), with x on a log scale
+ggplot(gapminder_1952, aes(x = pop)) +
+   geom_histogram() +
+   scale_x_log10() +
+   labs(subtitle="Distribution of country populations (passed to log) in the year 1952", 
+        y="log(count)", 
+        x="Population", 
+        title="Histogram plot", 
+        caption = "")
+```
+
+*Notice that on a log scale, the distribution of country populations is approximately symmetrical.*  
+
+###4 - Boxplot  
+
+####Comparing GDP per capita across continents  
+
+A `boxplot` is useful for comparing a distribution of values across several groups. In this exercise, you'll examine the distribution of GDP per capita by continent. Since GDP per capita varies across several orders of magnitude, you'll need to put the y-axis on a log scale.  
+
+```{r}
+# Create a boxplot comparing gdpPercap among continents
+ggplot(gapminder_1952, aes(x = continent, y = gdpPercap)) +
+   geom_boxplot() +
+   scale_y_log10() +
+   labs(subtitle="Comparing GDP per capita across continents in 1952", 
+        y="GDP per capita", 
+        x="Continent", 
+        title="Boxplot", 
+        caption = "")
+```
+

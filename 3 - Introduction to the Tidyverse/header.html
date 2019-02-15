@@ -1,0 +1,36 @@
+<!-- dynamically load mathjax for compatibility with self-contained -->
+  <script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+
+// Declare function to change style
+const change_style = function () {
+  
+  
+  // get the caption elements
+  let captions = window.document.getElementsByTagName('caption') ;
+  
+  // Array
+  var arr = Array.from(captions);
+  
+  // display content
+  console.log(arr);
+  
+  // Loop over captions
+  arr.forEach((iter)=>{
+    iter.removeAttribute("style");
+    iter.style.fontSize = "3em"
+  })
+  
+  
+  //captions.style.fontSize = null ;
+  
+}
+
+window.onload = change_style();
+
+</script>
