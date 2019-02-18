@@ -1,0 +1,185 @@
+---
+title: "Import data with R - Reproducible Excel work with XLConnect"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+## General principle  
+
+####Connect to a workbook  
+
+When working with `XLConnect`, the first step will be to load a workbook in your R session with `loadWorkbook()`; this function will build a `"bridge"` between your Excel file and your R session.  
+
+```{r, echo=FALSE, results='hide', message = FALSE, eval = FALSE}
+install.packages("XLConnect")
+```
+
+```{r, message = FALSE}
+# Load the XLConnect package
+library(XLConnect)
+
+# Build connection to urbanpop.xlsx: my_book
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+
+# Print out the class of my_book
+class(my_book)
+```
+
+
+
+####List and read Excel sheets  
+
+Just as `readxl` and `gdata`, you can use `XLConnect` to import data from Excel file into R.  
+
+To list the sheets in an Excel file, use `getSheets()`. To actually import data from a sheet, you can use `readWorksheet()`. Both functions require an `XLConnect` workbook object as the first argument.  
+
+```{r, message = FALSE}
+# Build connection to urbanpop.xlsx
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+
+# List the sheets in my_book
+getSheets(my_book)
+
+# Import the second sheet in my_book
+head(readWorksheet(my_book, sheet = 2))
+```
+
+
+
+####Customize readWorksheet  
+
+To get a clear overview about `urbanpop.xlsx` without having to open up the Excel file, you can execute the following code:  
+
+```{r, message = FALSE}
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+sheets <- getSheets(my_book)
+all <- lapply(sheets, readWorksheet, object = my_book)
+str(all)
+```
+
+Suppose we're only interested in urban population data of the years 1968, 1969 and 1970. The data for these years is in the columns 3, 4, and 5 of the second sheet. Only selecting these columns will leave us in the dark about the actual countries the figures belong to.  
+
+```{r, message = FALSE}
+# Build connection to urbanpop.xlsx
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+
+# Import columns 3, 4, and 5 from second sheet in my_book: urbanpop_sel
+urbanpop_sel <- readWorksheet(my_book, sheet = 2, startCol = 3, endCol = 5)
+
+# Import first column from second sheet in my_book: countries
+countries <- readWorksheet(my_book, sheet = 2, startCol = 1, endCol = 1)
+
+# cbind() urbanpop_sel and countries together: selection
+selection <- cbind(countries, urbanpop_sel)
+
+selection %>% 
+  tail() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+## Adapting sheets  
+
+####Add worksheet  
+
+Where `readxl` and `gdata` were only able to import Excel data, XLConnect's approach of providing an actual interface to an Excel file makes it able to edit your Excel files from inside R. In this exercise, you'll create a new sheet. In the next exercise, you'll populate the sheet with data, and save the results in a new Excel file.  
+
+```{r, message = FALSE}
+# Build connection to urbanpop.xlsx
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+
+# Add a worksheet to my_book, named "data_summary"
+createSheet(my_book, "data_summary")
+
+# Use getSheets() on my_book
+getSheets(my_book)
+```
+
+
+####Populate worksheet  
+
+The first step of creating a sheet is done; let's populate it with some data now! summ, a data frame with some summary statistics on the two Excel sheets is already coded so you can take it from there.  
+
+```{r, message = FALSE}
+# Build connection to urbanpop.xlsx
+my_book <- loadWorkbook("../xDatasets/urbanpop.xlsx")
+
+# Add a worksheet to my_book, named "data_summary"
+createSheet(my_book, "data_summary")
+
+# Create data frame: summ
+sheets <- getSheets(my_book)[1:3]
+dims <- sapply(sheets, function(x) dim(readWorksheet(my_book, sheet = x)), USE.NAMES = FALSE)
+summ <- data.frame(sheets = sheets,
+                   nrows = dims[1, ],
+                   ncols = dims[2, ])
+
+# Add data in summ to "data_summary" sheet
+writeWorksheet(my_book, summ, sheet = "data_summary")
+
+# Save workbook as summary.xlsx
+saveWorkbook(my_book, file = "summary.xlsx")
+```
+
+*See the created workook [here](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/summary.xlsx)*
+
+
+####Renaming sheets  
+
+Come to think of it, `"data_summary"` is not an ideal name. As the summary of these excel sheets is always data-related, you simply want to name the sheet `"summary"`.  
+```{r, message = FALSE}
+# Rename "data_summary" sheet to "summary"
+renameSheet(my_book, "data_summary", "summary")
+
+# Print out sheets of my_book
+getSheets(my_book)
+
+# Save workbook to "renamed.xlsx"
+saveWorkbook(my_book, file = "renamed.xlsx")
+```
+
+*See the updated sheet renamed [here](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/renamed.xlsx)*
+
+
+####Removing sheets  
+
+After presenting the new Excel sheet to your peers, it appears not everybody is a big fan. Why summarize sheets and store the info in Excel if all the information is implicitly available? To hell with it, just remove the entire fourth sheet!  
+
+```{r, message = FALSE}
+# Load the XLConnect package
+library(XLConnect)
+
+# Build connection to renamed.xlsx: my_book
+my_book <- loadWorkbook("renamed.xlsx")
+
+# Remove the fourth sheet
+removeSheet(my_book, sheet = "summary")
+
+# Save workbook to "clean.xlsx"
+saveWorkbook(my_book, file = "clean.xlsx")
+```
+
