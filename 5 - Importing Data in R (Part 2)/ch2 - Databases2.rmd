@@ -1,0 +1,209 @@
+---
+title: "Import data with R - Importing data from databases (Part 2)"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##SQL queries inside R  
+
+####Query tweater (1)  
+
+In your life as a data scientist, you'll often be working with huge databases that contain tables with millions of rows. If you want to do some analyses on this data, it's possible that you only need a fraction of this data. In this case, it's a good idea to send SQL queries to your database, and only import the data you actually need into R.  
+
+`dbGetQuery()` is what you need. As usual, you first pass the connection object to it. The second argument is an SQL query in the form of a character string. This example selects the age variable from the people dataset where gender equals "male":  
+
+> `dbGetQuery(con, "SELECT age FROM people WHERE gender = 'male'")`  
+
+A connection to the `tweater` database has already been coded for you.  
+
+```{r, eval = FALSE}
+# Connect to the database
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Import tweat_id column of comments where user_id is 1: elisabeth
+elisabeth <- dbGetQuery(con, "SELECT tweat_id FROM comments WHERE user_id = 1")
+
+# Print elisabeth
+elisabeth %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Query tweater (2)  
+
+Apart from checking equality, you can also check for less than and greater than relationships, with `< and >`, just like in R.  
+
+```{r, eval = FALSE}
+# Connect to the database
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Import post column of tweats where date is higher than '2015-09-21': latest
+latest <- dbGetQuery(con, "SELECT post FROM tweats WHERE date > '2015-09-21'")
+
+# Print latest
+latest %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Query tweater (3)  
+
+Suppose that you have a people table, with a bunch of information. This time, you want to find out the age and country of married males. Provided that there is a married column that's 1 when the person in question is married, the following query would work.  
+
+```{r, eval = FALSE}
+SELECT age, country
+  FROM people
+    WHERE gender = "male" AND married = 1
+```
+
+Can you use a similar approach for a more specialized query on the tweater database?  
+```{r, eval = FALSE}
+# Connect to the database
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Create data frame specific
+specific <- dbGetQuery(con, "SELECT message FROM comments WHERE tweat_id = 77 and user_id > 4")
+
+# Print specific
+specific %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+```
+
+
+####Query tweater (4)  
+
+There are also dedicated SQL functions that you can use in the `WHERE` clause of an SQL query. For example, `CHAR_LENGTH()` returns the number of characters in a string.  
+
+```{r, eval = FALSE}
+# Connect to the database
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Create data frame short
+short <- dbGetQuery(con, "SELECT id, name FROM users WHERE char_length(name) < 5")
+
+# Print short
+short %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+##DBI internals  
+
+####Send - Fetch - Clear  
+
+You've used `dbGetQuery()` multiple times now. This is a virtual function from the DBI package, but is actually implemented by the RMySQL package. Behind the scenes, the following steps are performed:  
+
+> Sending the specified query with `dbSendQuery()`;  
+> Fetching the result of executing the query on the database with` dbFetch()`;  
+> Clearing the result with `dbClearResult()`.  
+
+Let's not use `dbGetQuery()` this time and implement the steps above. This is tedious to write, but it gives you the ability to fetch the query's result in chunks rather than all at once. You can do this by specifying the n argument inside `dbFetch()`.  
+
+```{r, eval = FALSE}
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Send query to the database
+res <- dbSendQuery(con, "SELECT * FROM comments WHERE user_id > 4")
+
+# Use dbFetch() twice
+dbFetch(res, n = 2)
+dbFetch(res)
+
+# Clear res
+dbClearResult(res)
+```
+
+*In our toy example, chopping up the fetches doesn't make a lot of sense, but make sure to remember this technique when you're struggling with huge databases!*  
+
+
+####Be polite and ...  
+
+Every time you connect to a database using `dbConnect()`, you're creating a new connection to the database you're referencing. RMySQL automatically specifies a maximum of open connections and closes some of the connections for you, but still: it's always polite to manually disconnect from the database afterwards. You do this with the `dbDisconnect()` function.  
+
+```{r, eval = FALSE}
+# Load RMySQL package
+library(DBI)
+
+# Connect to the database
+library(DBI)
+con <- dbConnect(RMySQL::MySQL(),
+                 dbname = "tweater",
+                 host = "courses.csrrinzqubik.us-east-1.rds.amazonaws.com",
+                 port = 3306,
+                 user = "student",
+                 password = "datacamp")
+
+# Create the data frame  long_tweats
+long_tweats <- dbGetQuery(con, "SELECT post, date FROM tweats WHERE char_length(post) > 40")
+
+# Print long_tweats
+long_tweats  %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = T, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Disconnect from the database
+dbDisconnect(con)
+```
+
