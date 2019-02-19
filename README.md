@@ -24,3 +24,14 @@ Datacamp courses and exercises for R career track
 > [Grouping and summarizing](https://guigui351.github.io/Datacamp-R/3%20-%20Introduction%20to%20the%20Tidyverse/ch3_-_Grouping_and_summarizing.html)  
 
 > [Types of visualizations](https://guigui351.github.io/Datacamp-R/3%20-%20Introduction%20to%20the%20Tidyverse/ch4_-_Types_of_visualizations.html)  
+
+## Import data with R (Part 1)
+
+> [Importing data from flat files with utils](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch1_-_Flat_files_with_utils.html)  
+
+> [Importing data with readr & data.table](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch2_-_readr_and_data.table.html) 
+
+> [Importing data from Excel data](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch3_-_Excel_data.html)  
+
+> [Importing data with readr & data.table](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch4_-_XLConnect.html) 
+  
