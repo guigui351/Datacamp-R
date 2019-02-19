@@ -33,5 +33,18 @@ Datacamp courses and exercises for R career track
 
 > [Importing data from Excel data](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch3_-_Excel_data.html)  
 
-> [Importing data with readr & data.table](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch4_-_XLConnect.html) 
+> [Reproducible Excel work with XLConnect](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%201)/ch4_-_XLConnect.html) 
   
+  
+## Import data with R (Part 2)
+
+> [Importing data from databases (Part 1)
+](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%202)/ch1_-_Databases1.html)  
+
+> [Importing data from databases (Part 2) ](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%202)/ch2_-_Databases2.html) 
+
+> [Importing data from the web (Part 1)](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%202)/ch3_-_Data_Web1.html)  
+
+> [Importing data from the web (Part 2)](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%202)/ch4_-_Data_Web2.html) 
+
+> [Importing data from statistical software packages](https://guigui351.github.io/Datacamp-R/4%20-%20Importing%20Data%20in%20R%20(Part%202)/ch5_-_Statistical_software.html) 
