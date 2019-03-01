@@ -45,6 +45,18 @@ Datacamp courses and exercises for R career track
 
 > [Importing data from the web (Part 1)](https://guigui351.github.io/Datacamp-R/5%20-%20Importing%20Data%20in%20R%20(Part%202)/ch3_-_Data_Web1.html)  
 
-> [Importing data from the web (Part 2)](https://guigui351.github.io/Datacamp-R/5%20-%20Importing%20Data%20in%20R%20(Part%202)/ch4_-_Data_Web2.html) 
+> [Importing data from the web (Part 2)](https://guigui351.github.io/Datacamp-R/5%20-%20Importing%20Data%20in%20R%20(Part%202)/ch4_-_Data_Web2.html)  
 
-> [Importing data from statistical software packages](https://guigui351.github.io/Datacamp-R/5%20-%20Importing%20Data%20in%20R%20(Part%202)/ch5_-_Statistical_software.html) 
+> [Importing data from statistical software packages](https://guigui351.github.io/Datacamp-R/5%20-%20Importing%20Data%20in%20R%20(Part%202)/ch5_-_Statistical_software.html)  
+
+
+## Cleaning data with R  
+
+> [Introduction and exploring raw data](https://guigui351.github.io/Datacamp-R/6%20-%20Cleaning%20Data%20in%20R/ch1_-_Exploring_raw_data.html)  
+
+> [Tidying data](https://guigui351.github.io/Datacamp-R/6%20-%20Cleaning%20Data%20in%20R/ch2_-_Tidying_data.html)  
+
+> [Preparing data for analysis](https://guigui351.github.io/Datacamp-R/6%20-%20Cleaning%20Data%20in%20R/ch3_-_Preparing_data.html)  
+
+> [Putting it all together](https://guigui351.github.io/Datacamp-R/6%20-%20Cleaning%20Data%20in%20R/ch4_-_Your_turn.html)  
+
