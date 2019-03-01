@@ -1,0 +1,129 @@
+---
+title: "Cleaning Data in R - Introduction and exploring raw data"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+*First, removing any missing data is not part of a data cleaning process. Indeed, no one likes missing data, but it is dangerous to assume that it can simply be removed or replaced. Sometimes missing data tells us something important about whatever it is that we're measuring (i.e. the value of the variable that is missing may be related to - the reason it is missing). Such data is called Missing not at Random, or MNAR.*  
+
+
+##Here's what messy data look like  
+
+In the final chapter of this course, you will be presented with a messy, real-world dataset containing an entire year's worth of weather data from Boston, USA. Among other things, you'll be presented with variables that contain column names, column names that should be values, numbers coded as character strings, and values that are missing, extreme, and downright erroneous!  
+
+```{r}
+# Read weather RDS data
+weather <- readRDS("../xDatasets/weather.rds")
+
+# View the first 6 rows of data
+weather %>%
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# View the last 6 rows of data
+weather %>%
+  tail() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# View a condensed summary of the data
+str(weather)
+```
+
+
+##Exploring raw data  
+
+####Getting a feel for your data  
+
+The first thing to do when you get your hands on a new dataset is to understand its structure. There are several ways to go about this in R, each of which may reveal different issues with your data that require attention.  
+
+In this course, we are only concerned with data that can be expressed in table format (i.e. two dimensions, rows and columns). As you may recall from earlier courses, tables in R often have the type data.frame. You can check the class of any object in R with the `class()` function.  
+
+Once you know that you are `dealing with tabular data`, you may also want to get a quick feel for the contents of your data. Before printing the entire dataset to the console, it's probably worth knowing `how many rows and columns` there are. The `dim()` command tells you this.  
+
+```{r, message = FALSE}
+# Read BMI data
+library(readr)
+bmi <- read_csv("../xDatasets/bmi_clean.csv")
+
+# Check the class of bmi
+class(bmi)
+
+# Check the dimensions of bmi
+dim(bmi)
+
+# View the column names of bmi
+names(bmi)
+```
+
+
+####Viewing the structure of your data  
+
+Since bmi doesn't have a huge number of columns, you can view a `quick snapshot` of your data using the `str()` (for structure) command. In addition to the `class` and `dimensions` of your entire dataset, `str()` will tell you the `class of each variable` and give you a `preview of its contents`.  
+
+Although we won't go into detail on the `dplyr` package in this lesson (see the Data Manipulation in R with dplyr course), the `glimpse()` function from `dplyr` is a slightly cleaner alternative to `str()`. `str()` and `glimpse()` give you a preview of your data, which may `reveal issues with the way columns are labelled, how variables are encoded`, etc.  
+
+```{r}
+# Check the structure of bmi
+str(bmi)
+
+# Load dplyr
+library(dplyr)
+
+# Check the structure of bmi, the dplyr way
+glimpse(bmi)
+
+# View a summary of bmi
+sum_bmi <- as.data.frame(do.call(cbind, lapply(bmi, summary)))
+
+sum_bmi[,-1] %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Visualizing your data  
+
+There are many ways to visualize data. Since this is not a course about data visualization, we will only touch on two types of plots that may be useful for `quickly identifying extreme or suspicious values` in your data: `histograms` and `scatter plots`.  
+
+A histogram, created with the `hist()` function, takes a vector (i.e. column) of data, breaks it up into intervals, then plots as a vertical bar the number of instances within each interval. A scatter plot, created with the `plot()` function, takes two vectors (i.e. columns) of data and plots them as a series of (x, y) coordinates on a two-dimensional plane.  
+
+```{r}
+# Histogram of BMIs from 2008
+hist(bmi$Y2008)
+
+# Scatter plot comparing BMIs from 1980 to those from 2008
+plot(bmi$Y1980, bmi$Y2008)
+```
+
+
+
+
+
+

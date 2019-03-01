@@ -1,0 +1,185 @@
+---
+title: "Cleaning Data in R - Tidying data"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##Introduction to TidyR
+
+####Gathering columns into key-value pairs  
+
+The most important function in tidyr is `gather()`. It should be used when you have columns that are not variables and you want to collapse them into key-value pairs.  
+
+The easiest way to visualize the effect of `gather()` is that it makes wide datasets long. As you saw, running the following command on `wide_df` will make it long:  
+
+> `gather(wide_df, my_key, my_val, -col)`  
+
+
+```{r, message = FALSE}
+# Read BMI data
+library(readr)
+bmi <- read_csv("../xDatasets/bmi_clean.csv")
+
+# Apply gather() to bmi and save the result as bmi_long
+library(tidyr)
+bmi_long <- gather(bmi, year, bmi_val, -Country)
+
+# View the first 20 rows of the result
+bmi_long %>%
+  head(20) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+*Notice how now, instead of being represented in the column names, `years` are now all neatly represented in the `year column`. Try checking `dim(bmi_long)` and `dim(bmi)` before moving on.*  
+
+
+####Spreading key-value pairs into columns  
+
+The `opposite` of `gather()` is `spread()`, which takes key-values pairs and `spreads them across multiple columns`. This is useful when values in a column should actually be column names (i.e. variables). It can also make data more compact and easier to read.  
+
+The easiest way to visualize the effect of `spread()` is that it makes long datasets wide. As you saw, running the following command will make `long_df` wide:  
+
+> `spread(long_df, my_key, my_val)`  
+
+```{r}
+# Apply spread() to bmi_long
+bmi_wide <- spread(bmi_long, year, bmi_val)
+
+# View the head of bmi_wide
+bmi_wide %>%
+  head(8) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####Separating columns  
+
+The `separate()` function allows you to `separate one column into multiple columns`. Unless you tell it otherwise, it `will attempt to separate on any character that is not a letter or number`. You can also specify a specific separator using the `sep` argument.  
+
+We've loaded the small dataset called treatments into your workspace. This dataset obeys the principles of tidy data, but we'd like to split the treatment dates into two separate columns: `year` and `month`. This can be accomplished with the following:  
+
+> `separate(treatments, year_mo, c("year", "month"))`  
+
+```{r, eval = FALSE}
+# Apply separate() to bmi_cc
+bmi_cc_clean <- separate(bmi_cc, col = Country_ISO, into = c("Country", "ISO"), sep = "/")
+
+# Print the head of the result
+head(bmi_cc_clean)
+```
+
+####Uniting columns  
+
+The `opposite` of `separate()` is `unite()`, which takes `multiple columns and pastes them together`. By default, the contents of the columns will be `separated by underscores` in te new column, but this behavior can be altered via the `sep` argument.  
+
+We've loaded the treatments data into your workspace again, but this time the year_mo column has been separated into year and month. The original column can be recreated by putting year and month back together:  
+
+> `unite(treatments, year_mo, year, month)`  
+
+
+```{r, eval = FALSE}
+# Apply unite() to bmi_cc_clean
+bmi_cc <- unite(bmi_cc_clean, Country_ISO, Country, ISO, sep = "-")
+
+# View the head of the result
+head(bmi_cc)
+```
+
+
+####Column headers are values, not variable names  
+
+You saw earlier in the chapter how we sometimes come across datasets where column names are actually values of a variable (e.g. months of the year). This is often the case when working with repeated measures data, where measurements are taken on subjects of interest on multiple occasions over time. The `gather()` function is helpful in these situations.  
+
+```{r, message = FALSE}
+# Read Census data
+census <- read_csv("../xDatasets/census-retail.csv")
+
+# View the head of census
+census %>%
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Gather the month columns
+library(tidyr)
+census2 <- gather(census, month, amount, -YEAR) 
+
+# Arrange rows by YEAR using dplyr's arrange
+census2_arr <- arrange(census2, YEAR)
+
+# View first 20 rows of census2
+census2_arr%>%
+  head(12) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+####♀Variables are stored in both rows and columns  
+
+Sometimes you'll run into situations where `variables are stored in both rows and columns`. To illustrate this, we've loaded the `pets dataset` from the video, which tells us in a convoluted way how many birds, cats, and dogs Jason, Lisa, and Terrence have. Print the pets dataset to see for yourself.  
+
+Although it may not be immediately obvious, if we treat the values in the type column as variables and create a separate column for each of them, we can set things straight. To do this, we use the `spread()` function. Run the following code to see for yourself:  
+
+> `spread(pets, type, num)`  
+
+The result shows the exact same information in a much clearer way! Notice that the `spread()` function took in `three arguments`. The first argument takes the `name of your messy dataset (pets)`, the second argument takes the `name of the column to spread into new columns` (type), and the third argument takes the `column that contains the value with which to fill in the newly spread out columns` (num).  
+
+Now let's try this on a new messy dataset `census_long`. What information does this tell us?  
+
+```{r, eval = FALSE}
+# View first 50 rows of census_long
+head(census_long, n = 50)
+
+# Spread the type column
+census_long2 <- spread(census_long, type, amount)
+
+# View first 20 rows of census_long2
+head(census_long2, n = 20)
+```
+
+
+####Multiple values are stored in one column  
+
+It's also fairly common that you will find `two variables stored in a single column of data`. These variables may be `joined by a separator like a dash, underscore, space, or forward slash`.
+
+The `separate()` function comes in handy in these situations. To practice using it, we have created a slight modification of last exercise's result. Keep in mind that the into argument, which specifies the names of the 2 new columns being formed, must be given as a character vector (e.g. c("column1", "column2")).  
+
+```{r, eval = FALSE}
+# View the head of census_long3
+head(census_long3)
+
+# Separate the yr_month column into two
+census_long4 <- separate(census_long3, yr_month, c("year", "month"))
+
+# View the first 6 rows of the result
+head(census_long4, n = 6)
+```
+

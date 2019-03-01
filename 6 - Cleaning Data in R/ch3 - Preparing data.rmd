@@ -1,0 +1,337 @@
+---
+title: "Cleaning Data in R - Preparing data for analysis"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##Preparing data
+
+###Type conversion  
+
+####Types of variables in R  
+
+As in other programming languages, R is capable of storing data in many different formats, most of which you've probably seen by now.  
+
+Loosely speaking, the `class()` function tells you what type of object you're working with. (There are subtle differences between the `class`, `type`, and `mode` of an object, but these distinctions are beyond the scope of this course.)  
+
+```{r}
+# Make this evaluate to "character"
+class("TRUE")
+
+# Make this evaluate to "numeric"
+class(8484.00)
+
+# Make this evaluate to "integer"
+class(99L)
+
+# Make this evaluate to "factor"
+class(as.factor("factor"))
+
+# Make this evaluate to "logical"
+class(FALSE)
+```
+
+
+####Common type conversions  
+
+It is often necessary to change, or coerce, the way that variables in a dataset are stored. This could be because of the way they were read into R (with read.csv(), for example) or perhaps the function you are using to analyze the data requires variables to be coded a certain way.  
+
+Only certain coercions are allowed, but the rules for what works are generally pretty intuitive. For example, trying to convert a character string to a number gives an `error`: `as.numeric("some text")`.  
+
+There are a few less intuitive results. For example, under the hood, the logical values `TRUE` and `FALSE` are coded as `1` and `0`, respectively. Therefore, `as.logical(1)` returns `TRUE` and `as.numeric(TRUE)` returns `1`.  
+
+```{r, message = FALSE}
+# Read students data
+library(readr)
+students <- read_csv("../xDatasets/students_with_dates.csv")
+
+# Preview students with str()
+str(students, give.attr = FALSE)
+
+# Coerce Grades to character
+students$Grades <- as.character(students$Grades)
+
+# Coerce Medu to factor
+students$Medu <- as.factor(students$Medu)
+
+# Coerce Fedu to factor
+students$Fedu <- as.factor(students$Fedu)
+    
+# Look at students once more with str()
+str(students, give.attr = FALSE)
+```
+
+
+####Working with dates  
+
+Dates can be a challenge to work with in any programming language, but thanks to the `lubridate` package, working with dates in R isn't so bad. Since this course is about cleaning data, we only cover the most basic functions from `lubridate` to help us standardize the format of dates and times in our data.  
+
+These functions combine the letters `y`, `m`, `d`, `h`, `m`, `s`, which stand for year, month, day, hour, minute, and second, respectively. The order of the letters in the function should match the order of the date/time you are attempting to read in, although not all combinations are valid. Notice that the functions are "smart" in that they are capable of parsing multiple formats.  
+
+```{r, eval = FALSE}
+install.packages("lubridate")
+```
+
+```{r, message = FALSE}
+# Read students data
+library(readr)
+students2 <- read_csv("../xDatasets/students_with_dates.csv")
+
+# Preview students2 with str()
+#str(students2)
+
+# Load the lubridate package
+library(lubridate)
+
+# Parse as date
+dmy("17 Sep 2015")
+
+# Parse as date and time (with no seconds!)
+mdy_hm("July 15, 2012 12:56")
+
+# Coerce dob to a date (with no time)
+students2$dob <- ymd(students2$dob)
+
+# Coerce nurse_visit to a date and time
+students2$nurse_visit <- ymd_hms(students2$nurse_visit)
+    
+# Look at students2 once more with str()
+str(students2, give.attr = FALSE, vec.len = 8)
+```
+
+
+###String manipulation  
+
+```{r, eval = FALSE}
+install.packages("stringr")
+```
+
+####Trimming and padding strings  
+
+One common issue that comes up when cleaning data is the need to remove leading and/or trailing white space. The `str_trim()` function from `stringr` makes it easy to do this while leaving intact the part of the string that you actually want.  
+
+> `str_trim("  this is a test     ")`  
+> `[1] "this is a test"`  
+
+A similar issue is when you need to `pad strings` to make them a certain number of `characters wide`. One example is if you had a bunch of employee ID numbers, some of which begin with one or more zeros. When reading these data in, you find that the leading zeros have been dropped somewhere along the way (probably because the variable was thought to be numeric and in that case, leading zeros would be unnecessary.)  
+
+> `str_pad("24493", width = 7, side = "left", pad = "0")`  
+> `[1] "0024493"`  
+
+```{r}
+# Load the stringr package
+library(stringr)
+
+# Trim all leading and trailing whitespace
+str_trim(c("   Filip ", "Nick  ", " Jonathan"))
+
+# Pad these strings with leading zeros
+str_pad(c("23485W", "8823453Q", "994Z"), width = 9, side = "left", pad = "0")
+```
+
+*Examples like this are certainly handy in R. For example, the `str_pad()` function is useful when importing a dataset with US zip codes. Occasionally R will drop the leading 0 in a zipcode, thinking it's numeric.*  
+
+
+####Upper and lower case  
+
+In addition to trimming and padding strings, you may need to adjust their case from time to time. Making strings uppercase or lowercase is very straightforward in (base) R thanks to `toupper()` and `tolower()`. Each function takes exactly one argument: the character string (or vector/column of strings) to be converted to the desired case.  
+
+
+```{r}
+# state abbreviations 
+states <- c("al", "ak", "az", "ar", "ca", "co", "ct", "de", "fl", "ga", "hi", "id", "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "oh", "ok", "or", "pa", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "va", "wa", "wv", "wi", "wy")
+
+# Make states all uppercase and save result to states_upper
+states_upper <- toupper(states)
+
+# Make states_upper all lowercase again
+tolower(states_upper)
+```
+
+
+####Finding and replacing strings  
+
+The `stringr` package provides two functions that are very useful for `finding` and/or `replacing` patterns in strings: `str_detect()` and `str_replace()`.  
+
+Like all functions in `stringr`, the first argument of each is the string of interest. The second argument of each is the pattern of interest. In the case of `str_detect()`, this is the pattern we are searching for. In the case of `str_replace()`, this is the pattern we want to replace. Finally, `str_replace()` has a third argument, which is the string to replace with.  
+
+> `str_detect(c("banana", "kiwi"), "a")`  
+> `[1]  TRUE FALSE`  
+
+> `str_replace(c("banana", "kiwi"), "a", "o")`  
+> `"bonana" "kiwi"`  
+
+The data.frame `students2` is already available for you in the workspace. `stringr` is already loaded. `students3` is a copy of it for you to work on so you can always start from scratch if you happen to make a mistake.  
+
+```{r}
+# Copy of students2: students3
+students3 <- students2
+
+# Look at the head of students3
+students3 %>%
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Detect all dates of birth (dob) in 1997, print 10 first results
+str_detect(students3$dob, "1997")[1:10]
+
+# In the sex column, replace "F" with "Female" ...
+students3$sex <- str_replace(students3$sex, "F", "Female") 
+
+# ... and "M" with "Male"
+students3$sex <- str_replace(students3$sex, "M", "Male") 
+
+# View the tail of students3
+students3 %>%
+  tail(8) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+###Missing and special values  
+
+####Finding missing values  
+
+As you've seen, missing values in R should be represented by `NA`, but unfortunately you will not always be so lucky. Before you can deal with missing values, you have to find them in the data.  
+
+If missing values are properly coded as `NA`, the `is.na()` function will help you find them. Otherwise, if your dataset is too big to just look at the whole thing, you may need to try searching for some of the usual suspects like `""`, `"#N/A"`, etc. You can also use the `summary()` and `table()` functions to turn up unexpected values in your data.  
+
+In this exercise, we've created a simple dataset called `social_df` that has 3 pieces of information for each of four friends:  
+
+> Name  
+Number of friends on a popular social media platform  
+Current "status" on the platform  
+
+```{r}
+# Create small Social data frame
+name <- c("Sarah", "Tom", "David", "Alice")
+n_friends <- c(244, NA, 145, 43)
+status <- c("Going out!", "", "Movie night...", "")
+social_df <- data.frame(name, n_friends, status)
+
+# Call is.na() on the full social_df to spot all NAs
+is.na(social_df)
+
+# Use the any() function to ask whether there are any NAs in the data
+any(is.na(social_df))
+
+# View a summary() of the dataset
+summary(social_df)
+
+# Call table() on the status column
+table(social_df$status)
+```
+
+*Scanning your dataset for `NA` values is essential before learning how to remedy missing data problems.*  
+
+
+####Dealing with missing values  
+
+Missing values can be a rather complex subject, but here we'll only look at the simple case where you are simply interested in normalizing and/or removing all missing values from your data. For more information on why this is not always the best strategy, search online for "missing not at random."   
+
+Looking at the `social_df` dataset again, we asked around a bit and figured out what's causing the missing values that you saw in the last exercise. Tom doesn't have a social media account on this particular platform, which explains why his number of friends and current status are missing (although coded in two different ways). Alice is on the platform, but is a passive user and never sets her status, hence the reason it's missing for her.  
+
+The `stringr` package is preloaded.  
+
+```{r}
+# Replace all empty strings in status with NA
+social_df$status[social_df$status == ""] <- NA
+
+# Print social_df to the console
+social_df
+
+# Use complete.cases() to see which rows have no missing values
+complete.cases(social_df)
+
+# Use na.omit() to remove all rows with any missing values
+na.omit(social_df)
+```
+
+*Often times in data analyses, you'll want to get a feel for how many complete observations you have. This can be helpful in determining how you handle observations with missing data points.*  
+
+
+###Outliers and obvious errors  
+
+```{r}
+# Simulate some data with three outliers
+set.seed(10)
+x <- c(rnorm(30, mean = 15, sd = 5), -5, 28, 35)
+
+# View boxplot
+boxplot(x, horizontal = TRUE)
+```
+
+
+####Dealing with outliers and obvious errors  
+
+When dealing with strange values in your data, you often must decide whether they are just extreme or actually erroneous. Extreme values show up all over the place, but you, the data analyst, must figure out when they are plausible and when they are not.  
+
+We have loaded a dataset called `students3`, which is another slight variation of the original `students` dataset. Two variables appear to have suspicious values: `age` and `absences`. Let's explore these values further.  
+
+```{r, message = FALSE}
+# Read students data
+students3 <- read_csv("../xDatasets/students_with_dates.csv")
+
+# Simulate AGE and ABSCENCES variables
+students3$age <- sample(15:40, size = nrow(students3), replace = TRUE)
+
+# Look at a summary() of students3
+sum_students3 <- as.data.frame(do.call(cbind, lapply(students3, summary)))
+
+sum_students3[,-1] %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# View a histogram of the age variable
+hist(students3$age)
+
+# View a histogram of the absences variable
+hist(students3$absences)
+
+# View a histogram of absences, but force zeros to be bucketed to the right of zero
+hist(students3$absences, right = FALSE)
+```
+
+*As you can see, a simple histogram, displaying the distribution of a variable's values across all the observations can be key to identifying potential outliers as early as possible.*  
+
+
+####Another look at strange values  
+
+Another useful way of looking at strange values is with boxplots. Simply put, boxplots draw a box around the middle 50% of values for a given variable, with a bolded horizontal line drawn at the median. Values that fall far from the bulk of the data points (i.e. outliers) are denoted by open circles. (If you're curious about the exact formula for determining what is "far", check out `?hist.`)
+
+```{r}
+# View a boxplot of age
+boxplot(students3$age)
+
+# View a boxplot of absences
+boxplot(students3$absences)
+
+```
+
