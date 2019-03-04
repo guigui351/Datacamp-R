@@ -1,0 +1,264 @@
+---
+title: "Importing & Cleaning Data in R: Case Studies - Ticket Sales Data"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+###Importing the data  
+
+This course will give you some additional practice with importing and cleaning data through a series of four case studies.  
+
+You'll be importing and cleaning four real datasets that are a little messier than before. Don't worry -- you're up for the challenge!  
+
+Your first dataset describes `online ticket sales` for various events across the country. It's stored as a Comma-Separated Value (CSV) file called `sales.csv`. Let's jump right in!  
+
+```{r, message = FALSE}
+# Import sales.csv: sales
+sales <- read.csv("../xDatasets/sales.csv", stringsAsFactors = FALSE)
+```
+
+
+###Examining the data  
+
+As you know from the Cleaning Data in R course, the first step when preparing to clean data is to `inspect it`. Let's refresh your memory on some useful functions that can do that:  
+
+> `dim()` returns the dimensions of an object  
+`head()` displays the first part of an object  
+`names()` returns the names associated with an object  
+
+```{r}
+# View dimensions of sales
+dim(sales)
+
+# Inspect first 6 rows of sales
+sales %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# View column names of sales
+names(sales)
+```
+
+*Notice how the rows appear to represent individual purchases and the columns contain different pieces of information about each purchase.*  
+
+
+###Summarizing the data  
+
+Luckily, the rows and columns appear to be arranged in a meaningful way: `each row` represents an `observation` and `each column` a `variable`, or piece of information about that observation.  
+
+In R, there are a great many tools at your disposal to help get a feel for your data. Besides the three you used in the previous exercise, the functions `str()` and `summary()` can be very helpful.  
+
+The `dplyr` package, introduced in Cleaning Data in R, offers the `glimpse()` function, which can also be used for this purpose.  
+
+```{r, message = FALSE}
+# Look at structure of sales
+str(sales, give.attr = FALSE)
+
+# View a summary of sales
+sum_sales <- as.data.frame(do.call(cbind, lapply(sales, summary)))
+
+sum_sales[,-1] %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Load dplyr
+library(dplyr)
+
+# Get a glimpse of sales
+glimpse(sales)
+```
+
+*Before moving on, scroll to the top of the glimpse() output. Notice the first column, X, which appears to just be counting.*  
+
+
+###Removing redundant info  
+
+You may have noticed that the first column of data is just a duplication of the row numbers. Not very useful. Go ahead and delete that column.  
+
+Remember that `nrow()` and `ncol()` return the number of rows and columns in a data frame, respectively.  
+
+Also, recall that you can use square brackets to subset a data frame as follows:  
+
+> `my_df[1:5, ]` # First 5 rows of my_df  
+> `my_df[, 4]`   # Fourth column of my_df  
+
+Alternatively, you can remove rows and columns using negative indices. For example:  
+
+> `my_df[-(1:5), ]` # Omit first 5 rows of my_df  
+> `my_df[, -4]`     # Omit fourth column of my_df  
+
+```{r}
+# Remove the first column of sales: sales2
+sales2 <- sales[, -1]
+```
+
+
+###Information not worth keeping  
+
+Many of the columns have information that's of no use to us. For example, the first four columns contain internal codes representing particular events. The last fifteen columns also aren't worth keeping; there are too many missing values to make them worthwhile.  
+
+An easy way to get rid of unnecessary columns is to `create a vector` containing the column indices you want to keep, then `subset` the data based on that vector using single bracket subsetting.  
+
+```{r}
+# Define a vector of column indices: keep
+keep <- 5:(ncol(sales2) - 15)
+
+# Subset sales2 using keep: sales3
+sales3 <- sales2[, keep]
+```
+
+
+###Separating columns  
+
+Some of the columns in your data frame include multiple pieces of information that should be in separate columns. In this exercise, you will separate such a column into two: `one for date` and `one for time`. You will use the `separate()` function from the `tidyr` package.  
+
+Take a look at the `event_date_time` column by typing `head(sales3$event_date_time)` in the console. You'll notice that the date and time are separated by a space. Therefore, you'll use `sep = " "` as an argument to `separate()`.  
+
+```{r}
+# Load tidyr
+library(tidyr)
+
+# Split event_date_time: sales4
+sales4 <- separate(sales3, event_date_time,
+                   c("event_dt", "event_time"), sep = " ")
+
+# Split sales_ord_create_dttm: sales5
+sales5 <- separate(sales4, sales_ord_create_dttm,
+                   c("ord_create_dt", "ord_create_time"), sep = " ")
+```
+
+*Did you see the warning message that just popped up in the console? No need to panic (yet). You'll sort it out in the next exercise.*  
+
+
+###Dealing with warnings  
+
+Looks like that second call to `separate()` threw a warning. Not to worry; warnings aren't as bad as error messages. It's not saying that the command didn't execute; it's just a heads-up that something unusual happened.  
+
+The warning says `Too few values at 4 locations`. You may be able to guess already what the issue is, but it's still good to take a look.  
+
+The `locations (i.e. rows)` given in the warning are `2516`, `3863`, `4082`, and `4183`. Have a look at the contents of the `sales_ord_create_dttm` column in those rows.  
+
+```{r}
+# Define an issues vector
+issues <- c(2516, 3863, 4082, 4183)
+
+# Print values of sales_ord_create_dttm at these indices
+sales3$sales_ord_create_dttm[issues]
+
+# Print a well-behaved value of sales_ord_create_dttm
+sales3$sales_ord_create_dttm[2517]
+```
+
+*Thee warning was just because of four missing values. You'll ignore them for now, but if your analysis depended on complete date/time information, you would probably need to delete those rows.*  
+
+
+###Identifying dates  
+
+Some of the columns in your dataset contain dates of different events. Right now, they are stored as character strings. That's fine if all you want to do is look up the date associated with an event, but if you want to do any comparisons or math with the dates, it's MUCH easier to store them as Date objects.  
+
+Luckily, all of the date columns in this dataset have the substring "dt" in their name, so you can use the str_detect() function of the stringr package to find the date columns. Then you can coerce them to Date objects using a function from the lubridate package.  
+
+You'll use `lapply()` to apply the appropriate lubridate function to all of the columns that contain dates. Recall the following syntax for `lapply()` applied to some data frame columns of interest:  
+
+> `lapply(my_data_frame[, cols], function_name)`  
+
+Also recall that function names in lubridate combine the letters `y`, `m`, `d`, `h`, `m`, and `s` depending on the format of the date/time string being read in.  
+
+
+```{r}
+# Load stringr
+library(stringr)
+
+# Find columns of sales5 containing "dt": date_cols
+date_cols <- str_detect(names(sales5), "dt")
+
+# Load lubridate
+library(lubridate)
+
+# Coerce date columns into Date objects
+sales5[, date_cols] <- lapply(sales5[, date_cols], ymd)
+```
+
+*there were a few more warnings… Sigh.*  
+
+
+###More warnings!  
+
+As you saw, some of the calls to `ymd()` caused a failure to parse warning. That's probably because of more missing data, but again, it's good to check to be sure.  
+
+The first two lines of code (provided for you here) create a list of `logical vectors` called missing. Each vector in the list indicates the presence (or absence) of missing values in the corresponding column of sales5. See if the number of missing values in each column is the same as the number of rows that failed to parse in the previous exercise.  
+
+As a reminder, here are the warning messages:  
+
+>Warning message:  2892 failed to parse.  
+Warning message:  101 failed to parse.  
+Warning message:  4 failed to parse.  
+Warning message:  424 failed to parse.  
+
+```{r}
+# Find date columns (don't change)
+date_cols <- str_detect(names(sales5), "dt")
+
+# Create logical vectors indicating missing values (don't change)
+missing <- lapply(sales5[, date_cols], is.na)
+
+# Create a numerical vector that counts missing values: num_missing
+num_missing <- lapply(missing, sum)
+
+# Print num_missing
+num_missing
+```
+
+*Yep, it was missing data again. Ah, the joys of working with real-life datasets!*  
+
+
+###Combining columns  
+
+Sure enough, the number of `NAs` in each column match the numbers from the warning messages, so missing data is the culprit. How to proceed depends on your desired analysis. If you really need complete sets of date/time information, you might delete the rows or columns containing `NAs`.  
+
+As your last step, you'll use the `tidyr` function `unite()` to combine the `venue_city` and `venue_state` columns into `one column` with the two values separated by a `comma and a space`. For example, "PORTLAND" "MAINE" should become "PORTLAND, MAINE".  
+
+```{r}
+# Combine the venue_city and venue_state columns
+sales6 <- unite(sales5, "venue_city_state", c("venue_city", "venue_state"), sep = ", ")
+
+# View the head of sales6
+sales6 %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689") %>%
+  scroll_box(width = "100%", height = "500px")
+```
+
+*This dataset is much cleaner. Your next steps would depend on what specific analyses you wanted to perform; for now, we'll call it a chapter. Next up, you'll look at some data about “the T”, Boston's public transit system.*  
+
+```{r, message = FALSE}
+# Save our tidy dataframe to csv file
+write.csv(sales6,'../xDatasets/sales_clean.csv')
+```

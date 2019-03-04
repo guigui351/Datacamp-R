@@ -1,0 +1,196 @@
+---
+title: "Importing & Cleaning Data in R: Case Studies - School Attendance Data"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+###Importing the data  
+
+In this chapter, you'll work with attendance data from public schools in the US, organized by school level and state, during the 2007-2008 academic year. The data contain information on average daily attendance (ADA) as a percentage of total enrollment, school day length, and school year length.  
+
+The data were given to you in an Excel spreadsheet, which you can download or view a screenshot of. Either way, take a moment to look at the spreadsheet.  
+
+Do you see any symptoms of untidy data? At first glance, it looks like the first row is a description of the data, the second row is a variable itself that groups multiple columns together, and the fourth row gives numbers for the columns, which might look nice in a spreadsheet but isn't very useful for you, the analyst.  
+
+You'll take it one step at a time to import the data using the gdata package. The name of this spreadsheet is `"attendance.xls"` and is available in your working directory.  
+```{r, message =  FALSE}
+# Load the gdata package
+library(gdata)
+prl <- "C:/myperl/perl/bin/perl5.28.1.exe"
+
+# Import the spreadsheet: att
+att <- read.xls("../xDatasets/attendance.xls", perl = prl)
+```
+
+*Whoops, looks like your call to ``read.xls() triggered a `warning`. You already got experience interpreting warning messages in previous chapters, so we'll just go ahead and tell you: this one's nothing to worry about.*  
+
+
+###Examining the data  
+
+Now that you've successfully imported the data into R, you can get a better idea of how the spreadsheet was read in.  
+
+```{r}
+# Print the column names 
+names(att)
+
+# Print the first 6 rows
+att %>% 
+  head() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Print the last 6 rows
+att %>% 
+  tail() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Print the structure
+str(att, give.attr = FALSE)
+```
+
+*These are some messy data! The column names are mostly missing, there are irrelevant notes at the end of the data frame, and it looks like the numeric data were imported as factors. Let's start the cleaning process!*  
+
+
+###Removing unnecessary rows  
+
+Again, for reference, [here](http://s3.amazonaws.com/assets.datacamp.com/production/course_1294/datasets/attendance_screenshot.png) is an image of the first 22 rows of the original spreadsheet you were given. Looking at this image, you can see that rows 1, 4, 11, and 17 of the spreadsheet are useless. But is it safe to do something like the following?  
+
+> `att2 <- att[-c(1, 4, 11, 17), ]`  
+
+No! From the last exercise, you might have realized that the `read.xls()` function actually imported the first row of the original data frame as the variable name for the first column. Did you notice that the first 6 rows of att aren't the same as the first six rows you saw in the original spreadsheet? What about the 11th and 17th rows?  
+
+When you're importing a messy spreadsheet into R, it's good practice to compare the original spreadsheet with what you've imported. It turns out that, by default, the `read.xls()` function skips empty rows such as the 11th and 17th.  
+
+After viewing your data frame, you realize you still need to get rid of the third row of att, as well as rows 56 through 59.  
+
+```{r}
+# Create remove
+remove <- c(3, 56, 57, 58, 59)
+
+# Create att2
+att2 <- att[-remove, ]
+```
+
+
+###Removing useless columns  
+
+Once more, for reference, [here](http://s3.amazonaws.com/assets.datacamp.com/production/course_1294/datasets/attendance_screenshot.png) is an image of the first 22 rows of the original spreadsheet. You can see here that the columns 3, 5, 7, 9, 11, 13, 15, and 17 (or columns C, E, G, I, K, M, O, Q in Excel) don't contain the values of average daily attendance (ADA).  
+
+```{r}
+# Create remove
+remove <- c(3,5,7,9,11,13,15,17)
+
+# Create att3
+att3 <- att2[ ,-remove]
+```
+
+
+###Splitting the data  
+
+In many cases, a single data frame stores multiple "tables" of information. You can often diagnose this problem by looking at the column names and noticing duplicate rows.  
+
+In this data frame, columns 1, 6, and 7 represent attendance data for US elementary schools, columns 1, 8, and 9 represent data for secondary schools, and columns 1 through 5 represent data for all schools in the US.  
+
+Each of these should be stored as its own separate data frame, so you'll split them up here.  
+
+```{r}
+# Subset just elementary schools: att_elem
+att_elem <- att3[ , c(1,6,7)]
+
+# Subset just secondary schools: att_sec
+att_sec <- att3[ , c(1,8,9)]
+
+# Subset all schools: att4
+att4 <- att3[ , c(1:5)]
+```
+
+*From here on, you'll just be working with the data pertaining to all schools in the US.*  
+
+###Replacing the names  
+
+Since you went through so much trouble finding out which row stored the variable names, you should store that row as the actual column names of the data frame. We've modified the names a bit in order to be more stylistically sound; they're stored as `cnames` in the editor.  
+
+This will also allow you to remove the first two rows (currently storing variable names).  
+
+```{r}
+# Define cnames vector (don't change)
+cnames <- c("state", "avg_attend_pct", "avg_hr_per_day", 
+            "avg_day_per_yr", "avg_hr_per_yr")
+
+# Assign column names of att4
+colnames(att4) <- cnames
+
+# Remove first two rows of att4: att5
+att5 <- att4[-c(1,2), ]
+
+# View the names of att5
+names(att5)
+```
+
+
+###Cleaning up extra characters  
+
+One of the most irritating things about this dataset is that the state names are all stored as the same number of characters, with periods padding the ends of the shorter states. That may be helpful for reading the spreadsheet, but it makes your life harder, so you'll deal with it in this exercise.  
+
+One pitfall to avoid: `.` is a special character in the language of `regular expressions` (a.k.a. regex). In order to specify that you actually want to remove periods and not their regex equivalent (which is "all characters"), use `\\..` This is called an `"escape"` sequence.  
+
+```{r}
+library(stringr)
+
+# Remove all periods in state column
+att5$state <- str_replace_all(att5$state, "\\.", "")
+
+# Remove white space around state names
+att5$state <- str_trim(att5$state)
+
+# View the head of att5
+att5 %>% 
+  head() %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+###Some final type conversions  
+
+Finally, you'll convert the values in certain variables to numerics (instead of factors). It's worth noting that in previous chapters, your numerical data has often come in as character strings. This is just a difference between `read.xls()` and the other import functions you've used.  
+
+The `dplyr` package offers an efficient method for applying a function to many columns at once. If you'd like to learn more, check out DataCamp's course on Data Manipulation in R with dplyr! Since you might not have taken the dplyr course yet, we're just showing you the code here. You'll do the same thing, but using subsetting and `sapply()` instead.  
+
+```{r, message = FALSE}
+# Change columns to numeric using dplyr (don't change)
+library(dplyr)
+example <- mutate_at(att5, vars(-state), funs(as.numeric))
+
+# Define vector containing numerical columns: cols
+cols <- -1
+
+# Use sapply to coerce cols to numeric
+att5[, cols] <- sapply(att5[, cols], as.numeric)
+```
+
