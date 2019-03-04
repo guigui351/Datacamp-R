@@ -60,3 +60,17 @@ Datacamp courses and exercises for R career track
 
 > [Putting it all together](https://guigui351.github.io/Datacamp-R/6%20-%20Cleaning%20Data%20in%20R/ch4_-_Your_turn.html)  
 
+
+## Importing and Cleaning Data in R Case Studies 
+
+> [Ticket Sales Data](https://guigui351.github.io/Datacamp-R/7%20-%20Importing%20and%20Cleaning%20Data%20in%20R%20Case%20Studies/ch1_-_Ticket_Sales_Data.html)  
+
+> [MBTA Ridership Data](https://guigui351.github.io/Datacamp-R/7%20-%20Importing%20and%20Cleaning%20Data%20in%20R%20Case%20Studies/ch2_-_MBTA_Ridership_Data.html) 
+
+> [World Food Facts](https://guigui351.github.io/Datacamp-R/7%20-%20Importing%20and%20Cleaning%20Data%20in%20R%20Case%20Studies/ch3_-_World_Food_Facts.html)  
+
+> [School Attendance Data](https://guigui351.github.io/Datacamp-R/7%20-%20Importing%20and%20Cleaning%20Data%20in%20R%20Case%20Studies/ch4_-_School_Attendance_Data.html) 
+
+
+## Writing Functions in R  
+
