@@ -1,0 +1,456 @@
+---
+title: "Writing Functions in R - Functional programming"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+
+###Using a for loop to remove duplication  
+
+Imagine we have a data frame called `df`:  
+
+```{r}
+df <- data.frame(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+```
+
+We want to compute the median of each column. You could do this with copy and paste:
+
+```{r}
+median(df[[1]])
+median(df[[2]])
+median(df[[3]])
+median(df[[4]])
+```
+
+But that's a lot of repetition! Let's start by seeing how we could reduce the duplication by using a for loop.  
+
+```{r}
+# Initialize output vector
+output <- numeric(ncol(df))
+
+# Fill in the body of the for loop
+for (i in seq_along(df)) {            
+   output[[i]] = median(df[[i]])
+}
+
+# View the result
+output
+```
+
+
+###Turning the for loop into a function  
+
+Now, imagine you need to do this to another data frame `df2`. You copy and paste the for loop, and edit every reference to df to be `df2` instead.  
+
+```{r, eval = FALSE}
+output <- numeric(ncol(df)) 
+for (i in seq_along(df2)) {            
+  output[[i]] <- median(df2[[i]])      
+}
+output
+```
+
+And then you realize you have another data frame `df3` for which you also want the column medians. You copy and paste...and realize you've copied and pasted two times. Time to write a function!  
+
+```{r}
+# Turn this code into col_median()
+col_median <- function(df){
+  output <- numeric(ncol(df))
+  for (i in seq_along(df)) {            
+    output[[i]] <- median(df[[i]])      
+  }
+  output
+}
+```
+
+
+
+###What about column means?  
+
+What if instead of medians of every column you actually want means?  
+
+Let's write a `col_mean()` function that returns the vector of column means.  
+
+```{r}
+# Change col_median() to a col_mean() function to find column means
+col_mean <- function(df) {
+  output <- numeric(ncol(df))
+  for (i in seq_along(df)) {
+    output[[i]] <- mean(df[[i]])
+  }
+  output
+}
+```
+
+Define a function for SD now
+
+```{r}
+# Define col_sd() function
+col_sd <- function(df) {
+  output <- numeric(ncol(df))
+  for (i in seq_along(df)) {
+    output[[i]] <- sd(df[[i]])
+  }
+  output
+}
+```
+
+
+
+###Uh oh...time to write a function again  
+
+We just copied and pasted the function `col_median` `two times`. That's a sure sign we need to write a function. How can we write a function that will take column summaries for any summary function we provide?  
+
+Let's look at a simpler example first. Consider the functions `f1(), f2() and f3()` that take a vector `x` and return `deviations` from the mean value raised to the powers `1, 2, and 3` respectively:
+
+```{r}
+f1 <- function(x) abs(x - mean(x)) ^ 1
+f2 <- function(x) abs(x - mean(x)) ^ 2
+f3 <- function(x) abs(x - mean(x)) ^ 3
+```
+
+How could you remove the duplication in this set of function definitions?  
+
+Hopefully, you would suggest writing a single function with two arguments: `x` and `power`. That way, one function reproduces all the functionality of f1(), f2() and f3(), and more.  
+
+```{r}
+# Add a second argument called power
+f <- function(x, power) {
+    # Edit the body to return absolute deviations raised to power
+    abs(x - mean(x)) ^ power
+}
+```
+
+
+
+###Using a function as an argument  
+
+You just saw that we can remove the duplication in our set of summary functions by requiring the function doing the summary as an input. This leads to creating the `col_summary` function:  
+
+```{r}
+col_summary <- function(df, fun) {
+  output <- numeric(ncol(df))
+  for (i in seq_along(df)) {
+    output[[i]] <- fun(df[[i]])
+  }
+  output
+}
+```
+
+It may be kind of surprising that you can pass a function as an argument to another function, so let's verify first that it worked. We've found the column means and medians using our old `col_mean()` and `col_median()` functions. Your job is to repeat the calculations using `col_summary()` instead and verify that it works.  
+
+Not only does `col_summary()` remove the duplication in the functions we've already written, it also allows us to apply any summary to the columns of a data frame. Verify this, by finding the column `interquartile ranges` using the function `IQR()`. (For more info, see ?IQR.)  
+
+```{r}
+# Find the column medians using col_median() and col_summary()
+col_summary(df, fun = median)
+
+# Find the column means using col_mean() and col_summary()
+col_summary(df, fun = mean)
+
+# Find the column IQRs using col_summary()
+col_summary(df, fun = IQR)
+```
+
+*Nice! If you've used the `lapply()` or `sapply()` functions before, then you've passed functions as arguments. *  
+
+
+###The map functions  
+
+All the map functions in `purrr` take a vector, `.x`, as the first argument, then return `.f` applied to each element of `.x`. The type of object that is returned is determined by function suffix (the part after _):  
+
+> map() returns a list or data frame  
+> map_lgl() returns a logical vector  
+> map_int() returns a integer vector  
+> map_dbl() returns a double vector  
+> map_chr() returns a character vector  
+
+Let's repeat our column summaries using a map function instead of our `col_summary()` function.  
+
+```{r}
+# Load the purrr package
+library(purrr)
+
+# Use map_dbl() to find column means
+map_dbl(df, mean)
+
+# Use map_dbl() to column medians
+map_dbl(df, median)
+
+# Use map_dbl() to find column standard deviations
+map_dbl(df, sd)
+```
+
+
+
+###The ... argument to the map functions  
+
+The map functions use the `...` ("dot dot dot") argument to pass along additional arguments to `.f` each time it's called. For example, we can pass the trim argument to the `mean()` function:  
+
+> map_dbl(df, mean, trim = 0.5)  
+
+Multiple arguments can be passed along using commas to separate them. For example, we can also pass the na.rm argument to `mean()`:  
+
+> map_dbl(df, mean, trim = 0.5, na.rm = TRUE)  
+
+You don't have to specify the arguments by name, but it is good practice!  
+
+You may be wondering why the arguments to `map()` are `.x` and `.f` and not `x` and `f`? It's because `.x` and `.f` are very unlikely to be argument names you might pass through the ..., thereby preventing confusion about whether an argument belongs to `map()` or to the function being mapped.  
+
+Let's get a bit of practice with this. We'll apply our new knowledge to a subset of the planes data frame available in the `nycflights13` package. Use `map_dbl()` to find the average and 5th percentile of each column in planes  
+
+Which map function shall we use? In our case, every summary we calculated returned a single numeric value, so we'll use `map_dbl()`.  
+
+```{r, eval = FALSE, echo = FALSE}
+install.packages("nycflights13")
+```
+
+```{r, message = FALSE, eval= FALSE}
+# Load the purrr package
+library(purrr)
+library(nycflights13)
+
+# Find the mean of each column
+map_dbl(planes, mean)
+
+# Find the mean of each column, excluding missing values
+map_dbl(planes, mean, na.rm = TRUE)
+
+# Find the 5th percentile of each column, excluding missing values
+map_dbl(planes, quantile, probs = 0.05, na.rm = TRUE)
+```
+
+*Other nice features of the map functions are that they're implemented in C, which makes them really fast, and that they generally preserve names from their input in the output.*  
+
+
+###Picking the right map function  
+
+Choosing the right map function is important. You can always use `map()`, which will return a list. However, if you know what type of output you expect, you are better to use the corresponding function. That way, if you expect one thing and get another, you'll know immediately because the map function will return an error.  
+
+For example, try running:  
+
+> map_lgl(df, mean)  
+
+The map functions are what we call type consistent. This means you know exactly what type of output to expect regardless of the input. `map_lgl()` either returns either a logical vector or an error. `map_dbl()` returns either a double or an error.  
+
+One way to check the output type is to run the corresponding function on the first element. For example, `mean(df[[1]])` returns a single numeric value, suggesting `map_dbl()`.  
+
+
+```{r}
+# Find the columns that are numeric
+map_lgl(df, is.numeric)
+
+# Find the type of each column
+map_chr(df, typeof)
+
+# Find a summary of each column
+map(df, summary)
+```
+
+
+
+###Solve a simple problem first  
+
+Our goal is to fit a separate linear regression of miles per gallon (mpg) against weight (wt) for each group of cars in our list of data frames, where each data frame in our list represents a different group. How should we get started?  
+
+First, let's confirm the structure of this list of data frames. Then, we'll solve a simpler problem first: fit the regression to the first group of cars.  
+
+```{r}
+cyl <- split(mtcars, mtcars$cyl)
+# Examine the structure of cyl
+str(cyl)
+
+# Extract the first element into four_cyls
+four_cyls <- cyl[[1]]
+
+# Fit a linear regression of mpg on wt using four_cyls
+lm(mpg ~ wt, four_cyls )
+```
+
+
+
+###Using an anonymous function  
+Great! We now have a snippet of code that performs the operation we want on one data frame. One option would be to turn this into a function, for example:  
+
+```{r}
+fit_reg <- function(df) {
+  lm(mpg ~ wt, data = df)
+}
+```
+
+Then pass this function into `map()`:  
+
+> map(cyl, fit_reg)  
+
+But it seems a bit much to define a function for such a specific model when we only want to do this once. Instead of defining the function in the global environment, we will just use the function anonymously inside our call to `map()`.
+
+What does this mean? Instead of referring to our function by name in `map()`, we define it on the fly in the `.f` argument to `map()`.  
+
+```{r}
+# Rewrite to call an anonymous function
+map(cyl, function(df) lm(mpg ~ wt, data = df))
+```
+
+
+###Using a formula  
+
+Writing `anonymous functions` takes a lot of extra key strokes, so `purrr` provides a shortcut that allows you to write an anonymous function as a one-sided formula instead.  
+
+In R, a one-sided formula starts with a `~`, followed by an R expression. In `purrr`'s map functions, the R expression can refer to an element of the `.x` argument using the `.` character.
+
+Let's take a look at an example. Imagine, instead of a regression on each data frame in `cyl`, we wanted to know the `mean displacement` for each data frame. One way to do this would be to use an anonymous function:  
+
+> map_dbl(cyl, function(df) mean(df$disp))  
+
+To perform the same operation using the formula shortcut, we replace the function definition `(function(df))` with the `~`, then when we need to refer to the element of `cyl` the function operates on (in this case `df`), we use a `..`
+
+> map_dbl(cyl, ~ mean(.$disp))  
+
+See how much less typing it involves! It also saves you from coming up with an argument name. Can you rewrite our previous anonymous function using this formula shortcut instead?  
+
+```{r}
+# Rewrite to use the formula shortcut instead
+map(cyl, ~ lm(mpg ~ wt, data = .))
+```
+
+
+
+###Using a string  
+
+There are also some useful shortcuts that come in handy when you want to subset each element of the `.x` argument. If the `.f` argument to a map function is set equal to a string, let's say `"name"`, then `purrr` extracts the `"name"` element from every element of `.x`.  
+
+This is a really common situation you find yourself in when you work with nested lists. For example, if we have a list of where every element contains an a and b element:
+
+```{r}
+list_of_results <- list(
+  list(a = 1, b = "A"), 
+  list(a = 2, b = "C"), 
+  list(a = 3, b = "D")
+)
+```
+
+We might want to pull out the a element from every entry. We could do it with the string shortcut like this:  
+
+```{r}
+map(list_of_results, "a")
+```
+
+Now take our list of regresssion models:  
+
+```{r}
+map(cyl, ~ lm(mpg ~ wt, data = .))
+```
+
+It might be nice to extract the slope coefficient from each model. You'll do this in a few steps: first fit the models, then get the coefficients from each model using the `coef()` function, then pull out the `wt` estimate using the string shortcut.  
+
+```{r}
+# Save the result from the previous exercise to the variable models
+models <- map(cyl, ~ lm(mpg ~ wt, data = .))
+
+# Use map and coef to get the coefficients for each model: coefs
+coefs <- map(models, coef)
+
+# Use string shortcut to extract the wt coefficient 
+map(coefs, "wt")
+```
+
+
+
+###Using a numeric vector  
+
+Another useful shortcut for subsetting is to pass a `numeric vector` as the `.f` argument. This works just like passing a `string `but subsets by `index` rather than `name`. For example, with your previous list_of_results:
+
+```{r}
+list_of_results <- list(
+  list(a = 1, b = "A"), 
+  list(a = 2, b = "C"), 
+  list(a = 3, b = "D")
+)
+```
+
+Another way to pull out the a element from each list, is to pull out the first element:  
+
+```{r}
+map(list_of_results, 1)
+```
+
+Let's pull out the slopes from our models again, but this time using numeric subsetting. Also, since we are pulling out a single numeric value from each element, let's use `map_dbl()`.  
+
+```{r}
+coefs <- map(models, coef)
+
+# use map_dbl with the numeric shortcut to pull out the second element
+map_dbl(coefs, 2)
+```
+
+
+
+###Putting it together with pipes  
+
+`purrr` also includes a pipe operator:` %>%`. The pipe operator is another shortcut that saves typing, but also increases readability. The explanation of the pipe operator is quite simple: `x %>% f(y)` is another way of writing `f(x, y)`. That is, the left hand side of the pipe, `x`, becomes the `first argument` to the function, `f()`, on the right hand side of the pipe.  
+
+Take a look at our code to get our list of models:  
+
+cyl <- split(mtcars, mtcars$cyl) 
+map(cyl, ~ lm(mpg ~ wt, data = .))
+We split the data frame mtcars and save it as the variable cyl. We then pass cyl as the first argument to map to fit the models. We could rewrite this using the pipe operator as:  
+
+```{r}
+split(mtcars, mtcars$cyl) %>% 
+  map(~ lm(mpg ~ wt, data = .))
+```
+
+We read this as "split the data frame mtcars on `cyl`, then use `map()` on the result."  
+
+One of the powerful things about the `pipe` is we can chain together many operations. Here is our complete code, written with pipes, instead assigning each step to a variable and using it in the next step:  
+
+```{r}
+mtcars %>% 
+  split(mtcars$cyl) %>%
+  map(~ lm(mpg ~ wt, data = .)) %>%
+  map(coef) %>% 
+  map_dbl("wt")
+```
+
+We've written some code in the editor to pull out the R2 from each model. Rewrite the last two lines to use a pipe instead.  
+
+```{r}
+# Define models (don't change)
+models <- mtcars %>% 
+  split(mtcars$cyl) %>%
+  map(~ lm(mpg ~ wt, data = .))
+
+# Rewrite to be a single command using pipes 
+summaries <- map(models, summary)
+map_dbl(summaries, "r.squared")
+
+models %>% map(summary) %>% map_dbl("r.squared")
+```
+

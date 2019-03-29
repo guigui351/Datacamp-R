@@ -1,0 +1,378 @@
+---
+title: "Writing Functions in R - When and how you should write a function"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+###Start with a snippet of code  
+
+We have a snippet of code that successfully rescales a column to be between 0 and 1:  
+
+> (df$a - min(df$a, na.rm = TRUE)) /    
+  (max(df$a, na.rm = TRUE) - min(df$a, na.rm = TRUE))  
+  
+Our goal over the next few exercises is to turn this snippet, written to work on the a column in the data frame df, into a general purpose `rescale01()` function that we can apply to any vector.  
+
+The first step of turning a snippet into a function is to examine the snippet and decide how many inputs there are, then rewrite the snippet to refer to these inputs using temporary names. These inputs will become the arguments to our function, so choosing good names for them is important. (We'll talk more about naming arguments in a later exercise.)  
+
+In this snippet, there is one input: the numeric vector to be rescaled (currently `df$a`). What would be a good name for this input? It's quite common in R to refer to a vector of data simply as `x` (like in the mean function), so we will follow that convention here.  
+
+```{r}
+# Define example vector x
+x <- c(1:10, NA)
+
+# Rewrite this snippet to refer to x
+(x - min(x, na.rm = TRUE)) /
+  (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+```
+
+
+###Rewrite for clarity  
+
+Our next step is to examine our snippet and see if we can write it more clearly.  
+
+Take a close look at our rewritten snippet. Do you see any duplication?  
+
+> (x - min(x, na.rm = TRUE)) /  
+  (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))  
+  
+One obviously duplicated statement is `min(x, na.rm = TRUE)`. It makes more sense for us just to calculate it once, store the result, and then refer to it when needed. In fact, since we also need the `maximum value of x`, it would be even better to calculate the range once, then refer to the first and second elements when they are needed.
+
+What should we call this intermediate variable? You'll soon get the message that using good names is an important part of writing clear code! I suggest we call it rng (for "range").  
+
+```{r}
+x <- c(1:10, NA)
+
+# Define rng
+rng <-  range(x, na.rm = TRUE)
+
+# Rewrite this snippet to refer to the elements of rng
+(x - min(x, na.rm = TRUE)) /
+  (rng[2] - rng[1])
+```
+
+
+###Finally turn it into a function!  
+
+What do you need to write a function? You need a `name` for the function, you need to know the `arguments` to the function, and you need code that forms the `body` of the function.  
+
+We now have all these pieces ready to put together. It's time to write the function!  
+
+```{r}
+# Define example vector x
+x <- c(1:10, NA) 
+
+# Use the function template to create the rescale01 function
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE) 
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+# Test your function, call rescale01 using the vector x as the argument
+rescale01(x)
+```
+
+
+###Start with a simple problem  
+
+Let's tackle a new problem. We want to write a function, `both_na()` that counts at how many positions two vectors, `x` and `y`, both have a missing value. 
+
+How do we get started? Should we start writing our function?  
+
+> both_na <- function(x, y) {  
+   # something goes here?  
+}  
+
+No! We should start by solving a simple example problem first. Let's define an `x` and `y` where we know what the answer `both_na(x, y)` should be.  
+
+Let's start with:  
+
+> x <- c( 1, 2, NA, 3, NA)  
+y <- c(NA, 3, NA, 3,  4)  
+
+Then `both_na(x, y)` should return `1`, since there is only one element that is missing in both `x` and `y`, the third element.  
+
+(Notice we introduced a couple of extra spaces to each vector. Adding spaces to x and y to make them match up makes it much easier to see what the correct result is. Code formatting is an important aspect of writing clear code.)  
+
+Your first task is to write a line of code that gets to that answer.  
+
+```{r}
+# Define example vectors x and y
+x <- c( 1, 2, NA, 3, NA)
+y <- c(NA, 3, NA, 3,  4)
+
+# Count how many elements are missing in both x and y
+sum(is.na(x) & is.na(y))
+```
+
+
+###Rewrite snippet as function  
+
+Great! You now have a snippet of code that works:  
+
+> sum(is.na(x) & is.na(y))  
+
+You've already figured out it should have two inputs (the two vectors to compare) and we've even given them reasonable names: x and y. Our snippet is also so simple we can't write it any clearer.  
+
+```{r}
+# Define example vectors x and y
+x <- c( 1, 2, NA, 3, NA)
+y <- c(NA, 3, NA, 3,  4)
+
+# Turn this snippet into a function: both_na()
+both_na <- function(x, y) {
+  sum(is.na(x) & is.na(y))
+}
+```
+
+###Put our function to use  
+
+We have a function that works in at least one situation, but we should probably check it works in others.  
+
+Consider the following vectors:  
+
+> x <-  c(NA, NA, NA)  
+> y1 <- c( 1, NA, NA)  
+> y2 <- c( 1, NA, NA, NA)  
+
+What would you expect `both_na(x, y1)` to return? What about `both_na(x, y2)`? Does your function return what you expected? Try it and see!  
+
+```{r}
+y1 <- c( 1, NA, NA)
+y2 <- c( 1, NA, NA, NA)
+
+# Call both_na on x, y1
+both_na(x, y1)
+
+# Call both_na on x, y2
+both_na(x, y2)
+```
+
+*Are the answers what you expected? What should both_na(x, y2) return? You might argue it should return an error. We'll see how to handle this.*  
+
+
+###Argument names  
+
+It's not just your function that needs a good name. Your arguments need good names too!  
+
+Take a look at this function, which calculates a confidence interval for a population mean:  
+
+```{r}
+mean_ci <- function(c, nums) {
+  se <- sd(nums) / sqrt(length(nums))
+  alpha <- 1 - c
+  mean(nums) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+}
+```
+
+The argument `nums` is a sample of data and the argument `c` controls the level of the confidence interval. For example, if `c = 0.95`, we get a 95% confidence interval. Are `c` and `nums` good arguments names?  
+
+`c` is a particularly bad name. It is completely non-descriptive and it's the name of an existing function in R. What might be better? Maybe something like confidence, since it reveals the purpose of the argument: to control the level of confidence for the interval. Another option might be level, since it's the same name used for the confint function in base R and your users may already be familiar with that name for this parameter.  
+
+`nums` is not inherently bad, but since it's the placeholder for the vector of data, a name like `x` would be more recognizable to users.  
+
+```{r}
+# Rewrite mean_ci to take arguments named level and x
+mean_ci <- function(level, x) {
+  se <- sd(x) / sqrt(length(x))
+  alpha <- 1 - level
+  mean(x) + se * qnorm(c(alpha / 2, level / 2))
+}
+```
+
+
+
+###Argument order  
+
+Aside from giving your arguments good names, you should put some thought into what order your arguments are in and if they should have defaults or not.  
+
+Arguments are often one of two types:  
+
+> Data arguments supply the data to compute on.  
+> Detail arguments control the details of how the computation is done.  
+> Generally, data arguments should come first. Detail arguments should go on the end, and usually should have default values.  
+
+Take another look at our function:  
+
+```{r}
+mean_ci <- function(level, x) {
+  se <- sd(x) / sqrt(length(x))
+  alpha <- 1 - level
+  mean(x) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+}
+```
+
+`x` is the data to be used for the calculation, so it's a data argument and should come first.  
+
+`level` is a detail argument; it just controls the level of confidence for which the interval is constructed. It should come after the data arguments and we should give it a default value, say 0.95, since it is common to want a 95% confidence interval.  
+
+```{r}
+# Alter the arguments to mean_ci
+mean_ci <- function(x, level=0.95) {
+  se <- sd(x) / sqrt(length(x))
+  alpha <- 1 - level
+  mean(x) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+}
+```
+
+
+
+###Return statements  
+
+One of your colleagues has noticed if you pass `mean_ci()` an empty vector it returns a confidence interval with missing values at both ends (try it: mean_ci(numeric(0))). In this case, they decided it would make more sense to produce a warning `"x was empty"` and return `c(-Inf, Inf)` and have edited the function to be:  
+
+```{r}
+mean_ci <- function(x, level = 0.95) {
+  if (length(x) == 0) {
+    warning("`x` was empty", call. = FALSE)
+    interval <- c(-Inf, Inf)
+  } else { 
+    se <- sd(x) / sqrt(length(x))
+    alpha <- 1 - level
+    interval <- mean(x) + 
+      se * qnorm(c(alpha / 2, 1 - alpha / 2))
+  }
+  interval
+}
+```
+
+Notice how hard it is now to follow the logic of the function. If you want to know what happens in the empty x case, you need to read the entire function to check if anything happens to interval before the function returns. There isn't much to read in this case, but if this was a longer function you might be scrolling through pages of code.  
+
+This is a case where an early `return()` makes sense. If `x` is empty, the function should immediately return `c(-Inf, Inf)`.  
+
+```{r}
+# Alter the mean_ci function
+mean_ci <- function(x, level = 0.95) {
+  if (length(x) == 0) {
+    warning("`x` was empty", call. = FALSE)
+    return(c(-Inf, Inf))
+  } else { 
+    se <- sd(x) / sqrt(length(x))
+    alpha <- 1 - level
+    mean(x) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+  }
+}
+```
+
+
+
+###What does this function do?  
+
+Over the next few exercises, we'll practice everything you've learned so far. Here's a poorly written function, which is also available in your workspace:  
+
+```{r}
+f <- function(x, y) {
+  x[is.na(x)] <- y
+  cat(sum(is.na(x)), y, "\n")
+  x
+}
+```
+
+Your job is to turn it in to a nicely written function.  
+
+What does this function do? Let's try to figure it out by passing in some arguments.  
+
+```{r}
+# Define a numeric vector x with the values 1, 2, NA, 4 and 5
+x <- c(1, 2, NA, 4, 5)
+
+# Call f() with the arguments x = x and y = 3
+f(x = x, y = 3)
+
+# Call f() with the arguments x = x and y = 10
+f(x = x, y = 10)
+```
+
+
+
+###Let's make it clear from its name  
+
+Did you figure out what `f()` does? `f()` takes a vector `x` and replaces `any missing values` in it with the value `y`.  
+
+Imagine you came across the line df$z <- f(df$z, 0) a little further on in the code. What does that line do? Now you know, it replaces any missing values in the column df$z with the value 0. But anyone else who comes across that line is going to have to go back and find the definition of f and see if they can reason it out.  
+
+Let's rename our function and arguments to make it obvious to everyone what we are trying to achieve.
+```{r}
+z <- c(-0.17780669, -0.34124928, NA, 0.55376215, -0.74870750, NA, 0.04929412, 0.74328353, 0.60245635, -0.62036122)
+df <- as.data.frame(z)
+
+# Rename the function f() to replace_missings()
+replace_missings <- function(x, replacement) {
+  # Change the name of the y argument to replacement
+  x[is.na(x)] <- replacement
+  cat(sum(is.na(x)), replacement, "\n")
+  x
+}
+
+# Rewrite the call on df$z to match our new names
+df$z <- replace_missings(df$z, replacement = 0)
+
+df
+```
+
+
+
+###Make the body more understandable  
+
+```{r}
+replace_missings <- function(x, replacement) {
+  # Define is_miss
+  is_miss <- is.na(x)
+
+  # Rewrite rest of function to refer to is_miss
+  x[is_miss] <- replacement
+  cat(sum(is_miss), replacement, "\n")
+  x
+}
+```
+
+
+
+###Much better! But a few more tweaks...  
+Did you notice `replace_missings()` prints some output to the console?
+That output isn't exactly self-explanatory. It would be much nicer to say `"2 missing values replaced by the value 0"`.  
+
+It is also bad practice to use `cat()` for anything other than a `print()` method (a function designed just to display output). Having an important message just print to the screen makes it very hard for other people who might be programming with your function to capture the output and handle it appropriately.  
+
+The official R way to supply simple diagnostic information is the `message()` function. The unnamed arguments are pasted together with no separator (and no need for a newline at the end) and by default are printed to the screen.  
+
+Let's make our function nicer for users by using `message()` and making the output self-contained.  
+
+```{r}
+replace_missings <- function(x, replacement) {
+  is_miss <- is.na(x)
+  x[is_miss] <- replacement
+  
+  # Rewrite to use message()
+  message(paste0(sum(is_miss), " missing values replaced by the value 0"))
+  x
+}
+
+# Check your new function by running on df$z
+z <- c(-0.17780669, -0.34124928, NA, 0.55376215, -0.74870750, NA, 0.04929412, 0.74328353, 0.60245635, -0.62036122)
+df <- as.data.frame(z)
+replace_missings(df$z, replacement = 0)
+```
+

@@ -1,0 +1,428 @@
+---
+title: "Writing Functions in R - Robust code"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+
+###An error is better than a surprise  
+
+Recall our `both_na()` function from Chapter 2, that finds the number of entries where vectors `x` and `y` both have missing values:  
+
+```{r}
+both_na <- function(x, y) {
+  sum(is.na(x) & is.na(y))
+}
+```
+
+We had an example where the behavior was a little surprising:  
+
+```{r}
+x <- c(NA, NA, NA)
+y <- c( 1, NA, NA, NA)
+both_na(x, y)
+```
+
+The function works and returns 3, but we certainly didn't design this function with the idea that people could pass in different length arguments.  
+
+Using `stopifnot()` is a quick way to have your function stop, if a condition isn't met. `stopifnot()` takes logical expressions as arguments and if any are `FALSE` an error will occur.  
+
+```{r}
+# Define troublesome x and y
+x <- c(NA, NA, NA)
+y <- c( 1, NA, NA, NA)
+
+both_na <- function(x, y) {
+  # Add stopifnot() to check length of x and y
+  stopifnot(length(x) == length(y))
+  sum(is.na(x) & is.na(y))
+}
+
+# Call both_na() on x and y
+#both_na(x, y)
+```
+
+
+###An informative error is even better  
+
+Using `stop()` instead of `stopifnot()` allows you to specify a more informative error message. Recall the general pattern for using `stop()` is:
+
+```{r eval = FALSE}
+if (condition) {
+  stop("Error", call. = FALSE)
+}
+```
+
+Writing good error messages is an important part of writing a good function! We recommend your error tells the user what should be true, not what is false. For example, here a good error would be "x and y must have the same length", rather than the bad error "x and y don't have the same length".  
+
+Let's use this pattern to write a better check for the length of `x` and `y`.  
+
+```{r}
+# Define troublesome x and y
+x <- c(NA, NA, NA)
+y <- c( 1, NA, NA, NA)
+
+both_na <- function(x, y) {
+  # Replace condition with logical
+  if (length(x) != length(y)) {
+    # Replace "Error" with better message
+    stop("x and y must have the same length", call. = FALSE)
+  }  
+  sum(is.na(x) & is.na(y))
+}
+
+# Call both_na() 
+#both_na(x, y)
+```
+
+
+
+###A different kind of surprise: side effects  
+
+`Side effects` describe the things that happen when you run a function that alters the state of your R session. If `foo()` is a function with no side effects (a.k.a. pure), then when we `run x <- foo()`, the only change we expect is that the variable `x` now has a new value. No other variables in the global environment should be changed or created, no output should be printed, no plots displayed, no files saved, no options changed. We know exactly the changes to the state of the session just by reading the call to the function.
+
+Can you identify which of these functions doesn't have side effects?  
+
+```{r}
+show_missings <- function(x) {
+  n <- sum(is.na(x))
+  cat("Missing values: ", n, "\n", sep = "")
+  x
+}
+
+replace_missings <- function(x, replacement) {
+  x[is.na(x)] <- replacement
+  x
+}
+
+plot_missings <- function(x) {
+  plot(seq_along(x), is.na(x))
+  x
+}
+
+exclude_missings <- function() {
+  options(na.action = "na.exclude")
+}
+```
+
+answer: replace_missings. 
+
+*Of course functions with side effects are crucial for data analysis. You need to be aware of them, and deliberate in their usage. It's ok to use them if the side effect is desired, but don't surprise users with unexpected side effects.*  
+
+
+###sapply is another common culprit  
+
+`sapply()` is another common offender returning unstable types. The type of output returned from `sapply()` depends on the type of input.  
+
+Consider the following data frame and two calls to `sapply()`:  
+
+```{r}
+df <- data.frame(
+  a = 1L,
+  b = 1.5,
+  y = Sys.time(),
+  z = ordered(1)
+)
+
+A <- sapply(df[1:4], class) 
+B <- sapply(df[3:4], class)
+
+str(A)
+str(B)
+```
+
+What type of objects will be A and B be?  
+
+*A will be a list, B will be a character matrix.*  
+
+
+
+###Using purrr solves the problem  
+
+This unpredictable behaviour is a sign that you shouldn't rely on `sapply()` inside your own functions.  
+
+So, what do you do? Use alternate functions that are type consistent! And you already know a whole set: the `map()` functions in `purrr`.  
+
+In this example, when we call `class()` on the columns of the data frame we are expecting character output, so our function of choice should be: `map_chr()`:
+
+```{r eval = FALSE}
+library(purrr)
+
+df <- data.frame(
+  a = 1L,
+  b = 1.5,
+  y = Sys.time(),
+  z = ordered(1)
+)
+
+A <- map_chr(df[1:4], class) 
+B <- map_chr(df[3:4], class)
+
+str(A)
+str(B)
+```
+
+Except that gives us errors: `Error: Result 3 must be a single string, not a character vector of length 2`. This is a good thing! It alerts us that our assumption (that `class()` would return purely character output) is wrong.   
+
+Let's look at a couple of solutions. First, we could use `map()` instead of `map_chr()`. Our result will always be a list, no matter the input.  
+
+```{r}
+library(purrr)
+
+# sapply calls
+A <- sapply(df[1:4], class) 
+B <- sapply(df[3:4], class)
+C <- sapply(df[1:2], class) 
+
+# Demonstrate type inconsistency
+str(A)
+str(B)
+str(C)
+
+# Use map() to define X, Y and Z
+X <- map(df[1:4], class)
+Y <- map(df[3:4], class)
+Z <- map(df[1:2], class)
+
+# Use str() to check type consistency
+str(X)
+str(Y)
+str(Z)
+```
+
+
+
+###A type consistent solution  
+
+If we wrap our solution into a function, we can be confident that this function will always return a list because we've used a type consistent function, `map()`:  
+
+```{r eval = FALSE}
+col_classes <- function(df) {
+  map(df, class)
+}
+```
+
+But what if you wanted this function to always return a character string?  
+
+One option would be to decide what should happen if `class()` returns something longer than length 1. For example, we might simply take the first element of the vector returned by `class()`.  
+
+```{r}
+col_classes <- function(df) {
+  # Assign list output to class_list
+  class_list <- map(df, class)
+  
+  # Use map_chr() to extract first element in class_list
+  map_chr(class_list, 1)
+}
+
+# Check that our new function is type consistent
+df %>% col_classes() %>% str()
+df[3:4] %>% col_classes() %>% str()
+df[1:2] %>% col_classes() %>% str()
+```
+
+
+###Or fail early if something goes wrong  
+
+Another option would be to simply `fail`. We could rely on `map_chr()`'s type consistency to fail for us:  
+
+```{r eval = FALSE}
+col_classes <- function(df) {
+  map_chr(df, class)
+}
+
+df %>% col_classes() %>% str()
+```
+
+Or, check the condition ourselves and return an informative error message. We'll implement this approach in this exercise.  
+
+As you write more functions, you'll find you often come across this tension between implementing a function that does something sensible when something surprising happens, or simply fails when something surprising happens. Our recommendation is to fail when you are writing functions that you'll use behind the scenes for programming and to do something sensible when writing functions for users to use interactively.  
+
+(And by the way, `flatten_chr()` is yet another useful function in `purrr`. It takes a list and removes its hierarchy. The suffix `_chr` indicates that this is another type consistent function, and will either return a character string or an error message.)  
+
+```{r}
+col_classes <- function(df) {
+  class_list <- map(df, class)
+  
+  # Add a check that no element of class_list has length > 1
+  if (any(map_dbl(class_list, length) > 1)) {
+    stop("Some columns have more than one class", call. = FALSE)
+  }
+  
+  # Use flatten_chr() to return a character vector
+  flatten_chr(class_list)
+}
+
+# Check that our new function is type consistent
+#df %>% col_classes() %>% str()
+#df[3:4] %>% col_classes() %>% str()
+#df[1:2] %>% col_classes() %>% str()
+```
+
+ 
+###Programming with NSE functions  
+Let's take a look at a function that uses the `non-standard evaluation (NSE)` function `filter()` from the `dplyr` package:  
+
+```{r}
+big_x <- function(df, threshold) {
+  dplyr::filter(df, x > threshold)
+}
+```
+
+This `big_x()` function attempts to return all rows in `df` where the `x` column exceeds a certain `threshold`. Let's get a feel for how it might be used.  
+
+```{r}
+diamonds_sub <- diamonds[1:1000,]
+
+# Use big_x() to find rows in diamonds_sub where x > 7
+big_x(diamonds_sub,  7)
+```
+
+
+
+###When things go wrong  
+
+Now, let's see how this function might fail. There are two instances in which the non-standard evaluation of `filter()` could cause surprising results:  
+
+> The `x` column doesn't exist in `df`.  
+> There is a `threshold` column in `df`.  
+
+Let's illustrate these failures. In each case we'll use `big_x()` in the same way as the previous exercise, so we should expect the same output. However, not only do we get unexpected outputs, there is no indication (i.e. error message) that lets us know something might have gone wrong.  
+
+```{r}
+# Remove the x column from diamonds
+diamonds_sub$x <- NULL
+
+# Create variable x with value 1
+x <- 1
+
+# Use big_x() to find rows in diamonds_sub where x > 7
+big_x(diamonds_sub, 7)
+```
+
+```{r}
+# Create a threshold column with value 100
+diamonds_sub$threshold <- 100
+
+# Use big_x() to find rows in diamonds_sub where x > 7
+big_x(diamonds_sub, 7) 
+```
+
+*Instead of failing with an error of warning, big_x() gave an incorrect answer. This is dangerous!*  
+
+
+
+###What to do?  
+
+To avoid the problems caused by non-standard evaluation functions, you could avoid using them. In our example, we could achieve the same results by using `standard subsetting (i.e. [])` instead of `filter()`. For more insight into dealing with NSE and how to write your own non-standard evaluation functions, we recommend reading Hadley's vignette on the topic. Also, programming with the `NSE functions` in `dplyr` will be easier in a future version.  
+
+If you do need to use non-standard evaluation functions, it's up to you to provide protection against the problem cases. That means you need to know what the problem cases are, to check for them, and to fail explicitly.  
+
+To see what that might look like, let's rewrite `big_x()` to fail for our problem cases.  
+
+```{r}
+big_x <- function(df, threshold) {
+  # Write a check for x not being in df
+  if (!"x" %in% colnames(df)) {
+    stop("df must contain variable called x", call. = FALSE)
+  }
+  
+  # Write a check for threshold being in df
+  if ("threshold" %in% colnames(df)) {
+    stop("df must not contain variable called threshold", call. = FALSE)
+  }
+  
+  dplyr::filter(df, x > threshold)
+}
+```
+
+
+
+###A hidden dependence  
+
+A classic example of a hidden dependence is the `stringsAsFactors` argument to the `read.csv()` function (and a few other data frame functions.)  
+
+When you see the following code, you don't know exactly what the result will be:  
+
+```{r}
+pools <- read.csv("../xDatasets/swimming_pools.csv")
+```
+
+That's because if the argument `stringsAsFactors` isn't specified, it inherits its value from `getOption("stringsAsFactors")`, a `global option` that a **user may change**.  
+
+Just to prove that this is the case, let's illustrate the problem.  
+
+```{r}
+# This is the default behavior
+options(stringsAsFactors = TRUE)
+
+# Read in the swimming_pools.csv to pools
+pools <- read.csv("../xDatasets/swimming_pools.csv")
+
+# Examine the structure of pools
+str(pools)
+
+# Change the global stringsAsFactors option to FALSE
+read.csv("../xDatasets/swimming_pools.csv", stringsAsFactors = FALSE)
+
+# Read in the swimming_pools.csv to pools2
+pools2 <- read.csv("../xDatasets/swimming_pools.csv", stringsAsFactors = FALSE)
+
+# Examine the structure of pools2
+str(pools2)
+```
+
+
+###Legitimate use of options  
+
+In general, you want to avoid having the return value of your own functions depend on any global options. That way, you and others can reason about your functions without needing to know the current state of the options.  
+
+It is, however, okay to have side effects of a function depend on global options. For example, the `print()` function uses `getOption("digits")` as the default for the `digits argument`. This gives users some control over how results are displayed, but doesn't change the underlying computation.  
+
+Let's take a look at an example function that uses a global default sensibly. The `print.lm()` function has the options digits with default `max(3, getOption("digits") - 3)`.  
+
+```{r}
+# Start with this
+options(digits = 8)
+
+# Fit a regression model
+fit <- lm(mpg ~ wt, data = mtcars)
+
+# Look at the summary of the model
+summary(fit)
+
+# Set the global digits option to 2
+options(digits = 2)
+
+# Take another look at the summary
+summary(fit)
+```
+
+
+### Session Info
+
+```{r}
+sessionInfo()
+```
