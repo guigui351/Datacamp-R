@@ -74,3 +74,15 @@ Datacamp courses and exercises for R career track
 
 ## Writing Functions in R  
 
+> [A quick refresher](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch1_-_A_quick_refresher.html) 
+
+> [When and how you should write a function](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch2_-_When_and_how_you_ should_write_a_function.html)
+
+> [Functional programming](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch3_-_Functional_programming.html)
+
+> [Advanced inputs and outputs](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch4_-_Advanced_inputs_and_outputs.html)
+
+> [Robust code](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch5_-_Robust_code.html)
+
+
+## Data Manipulation in R with dplyr 
