@@ -85,4 +85,17 @@ Datacamp courses and exercises for R career track
 > [Robust code](https://guigui351.github.io/Datacamp-R/8%20-%20Writing%20Functions%20in%20R/ch5_-_Robust_code.html)
 
 
-## Data Manipulation in R with dplyr 
+## Data Manipulation in R with dplyr  
+
+> [Introduction to dplyr and tbls](https://guigui351.github.io/Datacamp-R/9%20-%20Data%20Manipulation%20in%20R%20with%20dplyr/ch1_-_Introduction_to_dplyr_and_tbls.html)  
+
+> [Select and mutate](https://guigui351.github.io/Datacamp-R/9%20-%20Data%20Manipulation%20in%20R%20with%20dplyr/ch2_-_Select_and_mutate.html)  
+
+> [Filter and arrange](https://guigui351.github.io/Datacamp-R/9%20-%20Data%20Manipulation%20in%20R%20with%20dplyr/ch3_-_Filter_and_arrange.html)  
+
+> [Summarize and the pipe operator](https://guigui351.github.io/Datacamp-R/9%20-%20Data%20Manipulation%20in%20R%20with%20dplyr/ch4_-_Summarize_and_the_pipe_operator.html)  
+
+> [Group_by and working with databases](https://guigui351.github.io/Datacamp-R/9%20-%20Data%20Manipulation%20in%20R%20with%20dplyr/ch5_-_Group_by_and_working_with_databases.html)  
+
+
+## Joining Data in R with dplyr    
