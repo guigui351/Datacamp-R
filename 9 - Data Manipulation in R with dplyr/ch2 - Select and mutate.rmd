@@ -1,0 +1,182 @@
+---
+title: "Data Manipulation in R with dplyr - Select and mutate"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##Section 3 - The five verbs and select in more detail  
+
+###The five verbs and their meaning  
+
+The `dplyr` package contains **five** key data manipulation functions, also called verbs:  
+
+> `select()`, which returns a subset of the columns,  
+> `filter()`, that is able to return a subset of the rows,  
+> `arrange()`, that reorders the rows according to single or multiple variables,
+> `mutate()`, used to add columns from existing data,  
+> `summarize()`, which reduces each group to a single row by calculating aggregate measures.  
+
+If you want to find out more about these functions, consult the documentation by clicking on the functions above.  
+
+
+
+###Choosing is not losing! The select verb  
+
+To answer the simple question whether flight delays tend to shrink or grow during a flight, we can safely discard a lot of the variables of each flight. To select only the ones that matter, we can use `select()`.  
+
+As an example, take the following call, that selects the variables `var1` and `var2` from the data frame `df`.
+
+> `select(df, var1, var2)`  
+
+You can also use : to select a range of variables and `-` to exclude some variables, similar to indexing a data.frame with square brackets. You can use both variable's names as well as integer indexes. This call selects the four first variables except for the second one of a data frame df:
+
+> `select(df, 1:4, -2)`  
+
+select() does not change the data frame it is called on; you have to explicitly assign the result of `select()` to a variable to store the result.  
+
+```{r}
+# Load the hflights package
+library(hflights)
+
+hflights_df <- hflights[sample(nrow(hflights), 720), ] 
+hflights <- as_tibble(hflights_df)
+
+# Print out a tbl with the four columns of hflights related to delay
+head(select(hflights, ActualElapsedTime, AirTime, ArrDelay, DepDelay))
+
+# Print out the columns Origin up to Cancelled of hflights
+head(select(hflights, 14:19))
+
+# Answer to last question: be concise!
+head(select(hflights, 1:4, 12:21))
+```
+
+*Bear in mind that select() does not modify the original dataset. Instead, select() returns a new, modified copy. Therefore, choosing is not losing! You should save the result to a new variable if you want to be able to use it later.*  
+
+
+
+###Helper functions for variable selection  
+
+`dplyr` comes with a set of helper functions that can help you select groups of variables inside a `select()` call:  
+
+```{r eval = FALSE}
+starts_with("X")  # every name that starts with "X",
+ends_with("X")    # every name that ends with "X",
+contains("X")     # every name that contains "X",
+matches("X")      # every name that matches "X", where "X" can be a regular expression,
+num_range("x", 1:5) # the variables named x01, x02, x03, x04 and x05,
+one_of(x)         # every name that appears in x, which should be a character vector.
+```
+
+
+Pay attention here: When you refer to columns directly inside select(), you don't use quotes. If you use the helper functions, you do use quotes.
+
+```{r}
+# Print out a tbl containing just ArrDelay and DepDelay
+head(select(hflights, ends_with(c('Delay'))))
+
+# Print out a tbl as described in the second instruction, using both helper functions and variable names
+head(select(hflights, UniqueCarrier, ends_with(c('Num')), starts_with(c('Cancel'))))
+
+# Print out a tbl as described in the third instruction, using only helper functions.
+head(select(hflights, ends_with("Time"), ends_with("Delay")))
+```
+
+*This exercise demonstrates the power of the helper functions. They can limit the amount of coding drastically. Beware of too obscure queries however; you still want your code to be clear for fellow data scientists!*
+
+
+###Comparison to base R  
+
+To see the added value of the `dplyr` package, it is useful to compare its syntax with base R. Up to now, you have only considered functionality that is also available without the use of `dplyr`. The elegance and ease-of-use of `dplyr` is a great plus though.  
+
+```{r}
+# Finish select call so that ex1d matches ex1r
+ex1r <- hflights[c("TaxiIn", "TaxiOut", "Distance")]
+ex1d <- select(hflights, starts_with("Taxi"), Distance)
+
+# Finish select call so that ex2d matches ex2r
+ex2r <- hflights[c("Year", "Month", "DayOfWeek", "DepTime", "ArrTime")]
+ex2d <- select(hflights, Year, Month, DayOfWeek, DepTime, ArrTime)
+
+# Finish select call so that ex3d matches ex3r
+ex3r <- hflights[c("TailNum", "TaxiIn", "TaxiOut")]
+ex3d <- select(hflights, TailNum, starts_with("Taxi"))
+```
+
+
+
+##Section 4 - The second of five verbs: mutate  
+
+###Mutating is creating  
+
+`mutate()` is the second of five data manipulation functions you will get familiar with in this course. `mutate()` creates new columns which are added to a copy of the dataset.  
+
+Take this example that adds a new column, `z`, which is the element-wise sum of the columns `x` and `y`, to the data frame `df`:  
+
+> `mutate(df, z = x + y)`  
+
+```{r}
+# Add the new variable ActualGroundTime to a copy of hflights and save the result as g1.
+g1 <- mutate(hflights, ActualGroundTime = ActualElapsedTime - AirTime)
+
+# Add the new variable GroundTime to g1. Save the result as g2.
+g2 <- mutate(g1, GroundTime = TaxiIn + TaxiOut)
+
+# Add the new variable AverageSpeed to g2. Save the result as g3.
+g3 <- mutate(g2, AverageSpeed = 60 * Distance / AirTime)
+
+# Print out g3
+g3 %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+###Add multiple variables using mutate  
+
+So far you've added variables to `hflights` one at a time, but you can also use `mutate()` to add multiple variables at once. To create more than one variable, place a comma between each variable that you define inside `mutate()`.  
+
+`mutate()` even allows you to use a new variable while creating a next variable in the same call. In this example, the new variable `x` is directly reused to create the new variable `y`:  
+
+> `mutate(my_df, x = a + b, y = x + c)`  
+
+
+```{r}
+# Add a second variable loss_ratio to the dataset: m1
+m1 <- mutate(hflights, loss = ArrDelay - DepDelay, loss_ratio = loss / DepDelay)
+
+# Add the three variables as described in the third instruction: m2
+m2 <- mutate(hflights, TotalTaxi = TaxiIn + TaxiOut, ActualGroundTime = ActualElapsedTime - AirTime, Diff = TotalTaxi - ActualGroundTime)
+```
+
+
+###Session info
+
+```{r}
+sessionInfo()
+```

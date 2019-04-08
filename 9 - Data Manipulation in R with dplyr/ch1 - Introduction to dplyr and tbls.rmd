@@ -1,0 +1,161 @@
+---
+title: "Data Manipulation in R with dplyr - Introduction to dplyr and tbls"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##Section 1 - Introduction to dplyr  
+
+###Load the dplyr and hflights package  
+
+We will learn the ins and outs of working with dplyr. dplyr is an R package, a collection of functions and data sets that enhance the R language.  
+
+Throughout this course you will use dplyr to analyze a data set of airline flight data containing flights that departed from Houston. This data is stored in a package called hflights.  
+
+Both `dplyr` and `hflights` are already installed on DataCamp's servers, so loading them with `library()` will get you up and running.  
+
+```{r eval = FALSE}
+install.packages("hflights")
+```
+
+```{r}
+# Load the dplyr package
+library(dplyr)
+
+# Load the hflights package
+library(hflights)
+
+# Call both head() and summary() on hflights
+hflights %>% 
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+sum_hfl <- as.data.frame(do.call(cbind, lapply(hflights, summary)))
+
+sum_hfl[,-c(1,2,3)] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+###Explore the data set  
+
+A data scientist must be familiar with his or her data. Experiment with the data set in the console and maybe try to generate some insightful plots. For your convenience, `hflights` is already loaded into the workspace.
+
+How many observations and how many variables are contained in the `hflights` data set?  
+
+```{r}
+dim(hflights)
+```
+
+*The variables are stored in the columns, whereas the observations are stored in the rows of this data set. As you can see, this data set is relatively large. In fact, it's about 25Mb in size. For your convenience, we will continue the course's exercises with a random subset of the data set.*  
+
+
+##Section 2 - tbl, a special type of data.frame  
+
+###Convert data.frame to tibble 
+
+A tbl (pronounced tibble) is just a special kind of data.frame. They make your data easier to look at, but also easier to work with. On top of this, it is straightforward to derive a tbl from a data.frame structure using `as_tibble()`.
+
+The `tbl` format changes how R displays your data, but it does not change the data's underlying data structure. A `tbl` inherits the original class of its input, in this case, a `data.frame`. This means that you can still manipulate the `tbl` as if it were a data.frame. In other words, you can do anything with the `hflights tbl` that you could do with the hflights data.frame.  
+
+```{r}
+# Both the dplyr and hflights packages are loaded
+
+# Convert the hflights_df data.frame into a hflights tbl
+hflights_df <- hflights[sample(nrow(hflights), 720), ] 
+hflights <- as_tibble(hflights_df)
+
+# Display the hflights tbl
+hflights
+
+# Create the object carriers
+hflights$carriers <- hflights$UniqueCarrier
+```
+
+###Changing labels of hflights, part 1 of 2  
+
+A bit of cleaning would be a good idea since the `UniqueCarrier` variable of `hflights` uses a confusing code system.  
+
+To do this, let's work with a lookup table, that comes in the form of a named vector. When you subset the lookup table with a character string (like the character strings in UniqueCarrier), R will return the values of the lookup table that correspond to the names in the character string. To see how this works, run following code in the console:
+
+```{r}
+two <- c("AA", "AS")
+lut <- c("AA" = "American", 
+         "AS" = "Alaska", 
+         "B6" = "JetBlue")
+two <- lut[two]
+two
+```
+
+```{r}
+# Both the dplyr and hflights packages are loaded into workspace
+lut <- c("AA" = "American", "AS" = "Alaska", "B6" = "JetBlue", "CO" = "Continental", 
+         "DL" = "Delta", "OO" = "SkyWest", "UA" = "United", "US" = "US_Airways", 
+         "WN" = "Southwest", "EV" = "Atlantic_Southeast", "F9" = "Frontier", 
+         "FL" = "AirTran", "MQ" = "American_Eagle", "XE" = "ExpressJet", "YV" = "Mesa")
+
+# Add the Carrier column to hflights
+hflights$Carrier <- lut[hflights$UniqueCarrier]
+
+# Glimpse at hflights
+glimpse(hflights)
+```
+
+
+
+###Changing labels of hflights, part 2 of 2 
+
+Let's try a similar thing, but this time to change the labels in the CancellationCode column. This column lists reasons why a flight was cancelled using a non-informative alphabetical code. Execute
+
+> unique(hflights$CancellationCode)  
+
+A lookup table lut has already been created for you, that converts the alphabetical codes into more meaningful strings.  
+
+```{r}
+# The hflights tbl you built in the previous exercise is available in the workspace.
+
+# The lookup table
+lut <- c("A" = "carrier", "B" = "weather", "C" = "FFA", "D" = "security", "E" = "not cancelled")
+
+# Add the Code column
+hflights$Code <- lut[hflights$CancellationCode]
+
+# Glimpse at hflights
+glimpse(hflights)
+```
+
+
+
+###Session info
+
+```{r}
+sessionInfo()
+```
+

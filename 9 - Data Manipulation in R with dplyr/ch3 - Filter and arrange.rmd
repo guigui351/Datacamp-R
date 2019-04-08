@@ -1,0 +1,182 @@
+---
+title: "Data Manipulation in R with dplyr - Filter and arrange"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    css: [default, extra.css]
+    includes:
+      after_body: ../assets/html/footer.html
+---
+
+
+```{r, echo=FALSE, results='hide', message = FALSE}
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+```
+
+##Section 5 - The third of five verbs: filter  
+
+###Logical operators  
+
+R comes with a set of logical operators that you can use inside `filter()`:  
+
+> `x < y`, `TRUE` if `x` is less than `y`  
+> `x <= y`, TRUE` if `x` is less than or equal to `y`  
+> `x == y`, TRUE` if `x` equals `y`  
+> `x != y`, TRUE` if `x` does not equal `y`  
+> `x >= y`, TRUE` if `x` is greater than or equal to `y`  
+> `x > y`, TRUE` if `x` is greater than `y`  
+> `x %in% c(a, b, c)`, `TRUE` if `x` is in the vector `c(a, b, c)`  
+
+The following example filters df such that only the observations for which a is positive, are kept:  
+
+> `filter(df, a > 0)`  
+
+```{r}
+# Load the hflights package
+library(hflights)
+
+hflights_df <- hflights[sample(nrow(hflights), 720), ] 
+hflights <- as_tibble(hflights)
+
+# All flights that traveled 3000 miles or more
+filter(hflights, Distance >= 3000) %>% glimpse()
+
+# All flights flown by one of JetBlue, Southwest, or Delta
+filter(hflights, UniqueCarrier %in% c("JetBlue", "Southwest", "Delta")) %>% glimpse()
+
+# All flights where taxiing took longer than flying
+filter(hflights, (TaxiIn + TaxiOut) > AirTime) %>% glimpse()
+```
+
+
+
+###Combining tests using boolean operators  
+
+R also comes with a set of boolean operators that you can use to combine multiple logical tests into a single test. These include `&` (and), `|` (or), and `!` (not). Instead of using the `&` operator, you can also pass several logical tests to `filter()`, separated by commas. The following two calls are completely equivalent:  
+
+> `filter(df, a > 0 & b > 0)`  
+> `filter(df, a > 0, b > 0)`  
+
+Next, `is.na()` will also come in handy. This example keeps the observations in df for which the variable `x` is not `NA`:  
+
+> `filter(df, !is.na(x))`  
+
+```{r}
+# All flights that departed before 5am or arrived after 10pm
+filter(hflights, DepTime < 500 | ArrTime > 2200) %>% glimpse()
+
+# All flights that departed late but arrived ahead of schedule
+filter(hflights, DepDelay > 0, ArrDelay < 0) %>% glimpse()
+
+# All flights that were cancelled after being delayed
+filter(hflights, DepDelay > 0, Cancelled == 1) %>% glimpse()
+```
+
+
+
+###Blend together what you've learned!  
+
+So far, you have learned three data manipulation functions in the `dplyr` package. Time for a summarizing exercise. You will generate a new dataset from the ``hflights dataset that contains some useful information on flights that had `JFK airport` as their destination. You will need `select()`, `mutate()` and `filter()`.  
+
+```{r}
+# Select the flights that had JFK as their destination: c1
+c1 <- filter(hflights, Dest == "JFK")
+
+# Combine the Year, Month and DayofMonth variables to create a Date column: c2
+c2 <- mutate(c1, Date = paste(Year, Month, DayofMonth, sep='-'))
+
+# Print out a selection of columns of c2
+select(c2, Date, DepTime, ArrTime, TailNum)
+```
+
+
+
+###Recap on select, mutate and filter  
+
+With `select()`, `mutate()` and `filter()`, you can already reveal interesting information from a dataset. Through a combination of these expressions or by the use of a one-liner, try to answer the following question:  
+
+*How many weekend flights flew a distance of more than 1000 miles but had a total taxiing time below 15 minutes?*
+
+```{r}
+filter(hflights, DayOfWeek %in% c(6,7), Distance > 1000, (TaxiIn + TaxiOut) < 15) %>% glimpse()
+```
+
+answer: 155 flights !
+
+
+##Section 6 - Almost there: the arrange verb  
+
+###Arranging your data  
+
+`arrange()` can be used to rearrange rows according to any type of data. If you pass `arrange()` a character variable, for example, R will rearrange the rows in alphabetical order according to values of the variable. If you pass a factor variable, R will rearrange the rows according to the order of the levels in your factor (running levels() on the variable reveals this order).  
+
+`dtc` has already been defined on the right. It's up to you to write some `arrange()` expressions to display its contents appropriately!  
+
+```{r}
+# Definition of dtc
+dtc <- filter(hflights, Cancelled == 1, !is.na(DepDelay))
+
+# Arrange dtc by departure delays
+arrange(dtc, DepDelay) %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Arrange dtc so that cancellation reasons are grouped
+arrange(dtc, CancellationCode) %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Arrange dtc according to carrier and departure delays
+arrange(dtc, UniqueCarrier, DepDelay) %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", , font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+###Reverse the order of arranging  
+
+By default, `arrange()` arranges the rows from `smallest` to `largest`. Rows with the smallest value of the variable will appear at the top of the data set. You can reverse this behavior with the `desc()` function. `arrange()` will reorder the rows from `largest` to `smallest` values of a variable if you wrap the variable name in `desc()` before passing it to `arrange()`.  
+```{r}
+# Arrange according to carrier and decreasing departure delays
+arrange(hflights, UniqueCarrier, desc(DepDelay))  %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+
+# Arrange flights by total delay (normal order).
+arrange(hflights, (DepDelay + ArrDelay))  %>%
+  head(10) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "center", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+
+###Session info
+
+```{r}
+sessionInfo()
+```
