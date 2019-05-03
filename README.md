@@ -100,4 +100,18 @@ Datacamp courses and exercises for R career track
 
 ## Joining Data in R with dplyr    
 
+> [Mutating joins](https://guigui351.github.io/Datacamp-R/10%20-%20Joining%20Data%20in%20R%20with%20dplyr/ch1_-_Mutating_joins.html)  
 
+> [Filtering joins and set operations](https://guigui351.github.io/Datacamp-R/10%20-%20Joining%20Data%20in%20R%20with%20dplyr/ch2_-_Filtering_joins_and_set_operations.html)  
+
+> [Assembling data](https://guigui351.github.io/Datacamp-R/10%20-%20Joining%20Data%20in%20R%20with%20dplyr/ch3_-_Assembling_data.html)  
+
+> [Advanced joining](https://guigui351.github.io/Datacamp-R/10%20-%20Joining%20Data%20in%20R%20with%20dplyr/ch4_-_Advanced_joining.html)  
+
+> [Case study](https://guigui351.github.io/Datacamp-R/10%20-%20Joining%20Data%20in%20R%20with%20dplyr/ch5_-_Case_study.html)  
+
+
+## Intro to SQL for Data Science  
+
+
+## Data Visualization with ggplot2 (Part 1)   
