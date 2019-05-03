@@ -1,0 +1,6 @@
+base
+knitr
+kableExtra
+gapminder
+dplyr
+ggplot2

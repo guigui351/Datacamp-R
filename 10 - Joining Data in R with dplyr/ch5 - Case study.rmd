@@ -1,0 +1,496 @@
+---
+title: "Joining Data in R with dplyr - Case study"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github # specifies the syntax highlighting style
+    css: [default, extra.css] # add your custom css, should be in same folder
+    toc: true # table of content
+    toc_depth: 3 # up to three depths of headings (specified by #, ## and ###)
+    #toc_float: true #  float the table of contents to the left of the main document content
+    number_sections: false  # if you want number sections at each table header
+    includes: # add additional files before/inside/after body of document
+      after_body: ../assets/html/footer.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T, cache=T, message=F, warning=F)
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+
+# Load source datasets
+source("create_datasets.R")
+```
+
+
+## Whats Covered
+
+  - Mutating joins
+  - Filtering joins and set operations
+  - Assembling data
+  - Advanced joining
+  - **Case Study**
+    
+## Aditional Resources
+  
+  - [R for Data Science Book](http://r4ds.had.co.nz/)
+  - [Data Wrangling Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
+  - [dplyr two table verbs vignette](https://cran.r-project.org/web/packages/dplyr/vignettes/two-table.html)
+  - [dbplyr vignette](https://cran.r-project.org/web/packages/dbplyr/vignettes/dbplyr.html)
+  
+
+***  
+# Case study
+***  
+
+## Lahman's Baseball Database
+
+  - library(Lahman)
+  - Sean Lahman's baseball database
+  - 26 tables
+  - A great example of real worl relational data
+  
+This database contains pitching, hitting, and fielding statistics
+     for Major League Baseball from 1871 through 2016.  It includes
+     data from the two current leagues (American and National), the
+     four other "major" leagues (American Association, Union
+     Association, Players League, and Federal League), and the National
+     Association of 1871-1875.
+
+     This database was created by Sean Lahman, who pioneered the effort
+     to make baseball statistics freely available to the general
+     public. What started as a one man effort in 1994 has grown
+     tremendously, and now a team of researchers have collected their
+     efforts to make this the largest and most accurate source for
+     baseball statistics available anywhere.
+
+     This database, in the form of an R package offers a variety of
+     interesting challenges and opportunities for data processing and
+     visualization in R.
+
+     In the current version, the examples make extensive use of the
+     'dplyr' package for data manipulation (tabulation, queries,
+     summaries, merging, etc.), reflecting the original relational
+     database design and 'ggplot2' for graphics.
+
+     **Details:**
+
+       Package:   Lahman                 
+       Type:      Package                
+       Version:   6.0-0                  
+       Date:      2017-07-04             
+       License:   GPL version 2 or newer 
+       LazyLoad:  yes                    
+       LazyData:  yes                    
+      
+     The main form of this database is a relational database in
+     Microsoft Access format. The design follows these general
+     principles: Each player is assigned a unique code ('playerID').
+     All of the information in different tables relating to that player
+     is tagged with his 'playerID'.  The 'playerID's are linked to
+     names and birthdates in the 'Master' table.  Similar links exist
+     among other tables via analogous '*ID' variables.
+
+     The database is composed of the following main tables:
+
+     'Master' Player names, dates of birth, death and other
+          biographical info
+
+     'Batting' batting statistics
+
+     'Pitching' pitching statistics
+
+     'Fielding' fielding statistics
+
+     A collection of other tables is also provided:
+
+     Teams:
+
+                 'Teams'  yearly stats and standings  
+             'TeamsHalf'  split season data for teams 
+       'TeamsFranchises'  franchise information       
+      
+     Post-season play:
+
+        'BattingPost'  post-season batting statistics  
+       'PitchingPost'  post-season pitching statistics 
+       'FieldingPost'  post-season fielding data       
+         'SeriesPost'  post-season series information  
+      
+     Awards:
+
+            'AwardsManagers'  awards won by managers          
+             'AwardsPlayers'  awards won by players           
+       'AwardsShareManagers'  award voting for manager awards 
+        'AwardsSharePlayers'  award voting for player awards  
+      
+     Hall of Fame: links to Master via 'hofID'
+
+       'HallOfFame'  Hall of Fame voting data 
+      
+     Other tables:
+
+     'AllstarFull' - All-Star games appearances; 'Managers' -
+     managerial statistics; 'FieldingOF' - outfield position data;
+     'ManagersHalf' - split season data for managers; 'Salaries' -
+     player salary data; 'Appearances' - data on player appearances;
+     'Schools' - Information on schools players attended;
+     'CollegePlaying' - Information on schools players attended, by
+     player and year;
+
+     Variable label tables are provided for some of the tables:
+
+     'battingLabels', 'pitchingLabels', 'fieldingLabels'
+
+  
+### Universal keys?
+
+  - Before starting to analyze the data, you'll examine how the datasets are related to each other.
+  - In particular, do any variable names span all of the datasets?  
+  
+```{r, message = T, warning = T}
+library(purrr)
+
+# Examine lahmanNames
+lahmanNames
+
+# Find variables in common
+reduce(lahmanNames, intersect)
+```
+  
+*No variables span all 26 datasets.*  
+
+
+###Common keys  
+
+No variables span all 26 datasets, but several variables span more than one dataset. These variables provide relationships between the various tables in Lahman. Can you find them?  
+
+```{r}
+lahmanNames %>%  
+  # Bind the data frames in lahmanNames
+  bind_rows(.id = 'dataframe') %>%
+  # Group the result by var
+  group_by(var) %>%
+  # Tally the number of appearances
+  tally() %>%
+  # Filter the data
+  filter(n > 2) %>% 
+  # Arrange the results
+  arrange(desc(n)) %>% 
+  # Create pretty table
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+*`yearID`, `playerID`, `lgID`, and `teamID` are the most common variable names.*  
+
+###playerID  
+
+In the last exercise, you saw that `playerID` is one of the most widely used `keys` in the `Lahman database`. Which datasets use `playerID`?  
+
+```{r}
+lahmanNames %>% 
+  # Bind the data frames
+  bind_rows(.id = 'dataframe') %>%
+  # Filter the results
+  filter(var == "playerID") %>% 
+  # Extract the dataframe variable
+  `$`(dataframe)
+```
+
+*The playerID variable appears in 19 of the 26 datasets in Lahman.*  
+
+
+##Salaries  
+
+###Who are the players?  
+
+Before we look at `salaries`, let's begin by ensuring that we have salary information for each player in the database, or at least no systematic holes in our coverage.  
+
+To do this we will need a list of every player to compare against salaries. The Master dataset contains all of the players in the database, but it may contain multiple rows for each player.  
+
+How should you proceed?  
+
+We saw how to use `distinct()` to find unique rows for all columns in a table. You can also find unique  rows for specific columns using thefollowing syntax:  
+
+```{r, eval = FALSE}
+tbl %>%
+  # Find unique rows of columns a,b, and c
+  distinct(a, b, c)
+```
+
+```{r, echo = FALSE}
+# Unable to install properly Lahman package, I will load RData manually
+#install.packages("Lahman")
+
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/Master.RData")
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/Salaries.RData")
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/Appearances.RData")
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/Batting.RData")
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/HallOfFame.RData")
+load("//jnjchzufps03.eu.jnj.com/homef$/GAbgrall/R/win-library/3.5/lahman/data/AwardsPlayers.RData")
+```
+
+```{r, eval = FALSE}
+library(Lahman)
+```
+
+```{r}
+players <- Master %>% 
+  # Return one row for each distinct player
+  distinct(playerID, nameFirst, nameLast)
+
+players %>% 
+  head(10) %>%
+  # Create pretty table
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+*players contains a concise list of player IDs and names. Plus we can feel certain that players contains only one row for each distinct player.*  
+
+
+###Missing salaries  
+
+Now that we know who the players are, let's check our salary coverage. How many players are completely missing salary information?
+
+```{r}
+Salaries %>% 
+  head(10) %>%
+  # Create pretty table
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+players %>% 
+  # Find all players who do not appear in Salaries
+  anti_join(Salaries, by = "playerID") %>%
+  # Count them
+  count()
+```
+
+*We are missing the salaries for 14,468 players. No wonder baseball players strike so often!*  
+
+
+###Unpaid games?  
+
+Now that we know there is a huge hole in the salary data, let's see if we can explain it. Is it possible that these players somehow did not play (and hence did not earn a salary)?  
+
+We can check with the `Appearances` data frame. `Appearances` contains information about every game played in major league baseball. That is, if a player played a game, it would show up as a row in `Appearances`.  
+
+```{r}
+Appearances %>% 
+  head(10) %>%
+  # Create pretty table
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+players %>% 
+  anti_join(Salaries, by = "playerID") %>% 
+  # How many unsalaried players appear in Appearances?
+  semi_join(Appearances, by = "playerID") %>% 
+  count()
+```
+
+*14,279 players played a game but are missing salary information. Interestingly, 191 players neither played a game nor have a recorded salary.*  
+
+
+###How many games?  
+
+Perhaps the unsalaried players only played one or two games, and hence did not earn a full salary. Can you determine how many games each of these unsalaried players played?  
+
+```{r}
+players %>% 
+  # Find all players who do not appear in Salaries
+  anti_join(Salaries, by = "playerID") %>% 
+  # Join them to Appearances
+  left_join(Appearances, by = "playerID") %>% 
+  # Calculate total_games for each player
+  group_by(playerID) %>%
+  summarize(total_games=sum(G_all, is.na = FALSE)) %>%
+  # Arrange in descending order by total_games
+  arrange(desc(total_games))
+```
+
+*Many of these players appeared in thousands of games, which rules out our hypothesis that they did not appear in enough games to earn a salary.*  
+
+
+###How many at-bats?  
+
+Is it possible that the unsalaried players did not actually play in the games that they appeared in? One way to check would be to determine if the players had an at-bat (i.e. batted) in the games that they appeared in.  
+
+```{r}
+players %>%
+  # Find unsalaried players
+  anti_join(Salaries, by = "playerID") %>% 
+  # Join Batting to the unsalaried players
+  left_join(Batting, by = "playerID") %>% 
+  # Group by player
+  group_by(playerID) %>% 
+  # Sum at-bats for each player
+  summarize(total_at_bat = sum(AB, is.na = FALSE)) %>% 
+  # Arrange in descending order
+  arrange(desc(total_at_bat))
+```
+
+*The unpaid players definitely participated in the games. In fact, you can spot Ty Cobb and Hank Aaron in the top three at-bats. I think it's safe to assume that you are dealing with missing data here and not unsalaried players.*  
+
+
+##Introducing the hall of fame  
+
+### Hall of fame nominations
+
+The Hall of Fame is a collection of distinguished baseball players selected by a committee of baseball experts. As with any hall of fame, more players are nominated for membership than are actually admitted.  
+
+  - Let's see how many players have been nominated for the Hall of Fame.  
+  
+```{r}
+# Find the distinct players that appear in HallOfFame
+nominated <- HallOfFame %>% 
+  distinct(playerID)
+
+nominated %>% 
+  # Count the number of players in nominated
+  count()
+
+nominated_full <- nominated %>% 
+  # Join to Master
+  left_join(Master, by = "playerID") %>% 
+  # Return playerID, nameFirst, nameLast
+  select(playerID, nameFirst, nameLast)
+```
+
+*There were 1,279 nominees for the Hall of Fame. We now have a dataset of everyone nominated! Let's create a dataset for everyone inducted to the Hall of Fame in the next exercise.*  
+
+
+###Hall of fame inductions  
+
+In the previous exercise, we saw that 1,279 players were nominated for the hall of fame. Let's now see how many players were admitted to the hall of fame to examine how selective the voting process is.  
+
+```{r}
+# Find distinct players in HallOfFame with inducted == "Y"
+inducted <- HallOfFame %>% 
+  filter(inducted == "Y") %>% 
+  distinct(playerID)
+
+inducted %>% 
+  # Count the number of players in inducted
+  count()
+
+inducted_full <- inducted %>% 
+  # Join to Master
+  left_join(Master, by = "playerID") %>% 
+  # Return playerID, nameFirst, nameLast
+  select(playerID, nameFirst, nameLast)
+```
+
+*323 players have been inducted into the Hall of Fame out of 1,279 nominees. We now also have datasets of everyone inducted and everyone nominated.*  
+
+
+###Awards  
+
+Now that we know who was inducted and who was nominated, let's examine what separates the nominees who were inducted from the nominees who were not.  
+
+Let's start with a simple question: Did nominees who were inducted earn more awards than nominees who were not inducted?  
+
+We can use `AwardsPlayers` to answer the question. It lists the playerID's of players who won baseball awards, and it contains one row for each award awarded in major league baseball.  
+
+```{r}
+AwardsPlayers %>% 
+  head(10) %>%
+  # Create pretty table
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Tally the number of awards in AwardsPlayers by playerID
+nAwards <- AwardsPlayers %>% 
+  group_by(playerID) %>% 
+  tally()
+
+nAwards %>% 
+  # Filter to just the players in inducted 
+  inner_join(inducted, by = "playerID") %>% 
+  # Calculate the mean number of awards per player
+  summarize(avg_n = mean(n, na.rm = TRUE))
+
+nAwards %>% 
+  # Filter to just the players in nominated 
+  inner_join(nominated, by = "playerID") %>% 
+  # Filter to players NOT in inducted 
+  anti_join(inducted, by = "playerID") %>% 
+  # Calculate the mean number of awards per player
+  summarize(avg_n = mean(n, na.rm = TRUE))
+```
+
+*On Average, inductees had 12.04 - 4.21 = 7.83 more awards than non-inductees.*  
+
+
+###Salary  
+
+Salary may provide another way to differentiate inductees from non-inductees. Does the maximum salary earned by inductees tend to be greater than the maximum salary earned by nominees who were not inducted?  
+
+```{r}
+# Find the players who are in nominated, but not inducted
+notInducted <- nominated %>% 
+  setdiff(inducted)
+
+Salaries %>% 
+  # Find the players who are in notInducted
+  semi_join(notInducted, by = "playerID") %>%
+  # Calculate the max salary by player
+  group_by(playerID) %>% 
+  summarize(max_salary = max(salary, na.rm = TRUE)) %>% 
+  # Calculate the average of the max salaries
+  summarize(avg_salary = mean(max_salary, na.rm = TRUE))
+
+# Repeat for players who were inducted
+Salaries %>% 
+  semi_join(inducted, by = "playerID") %>% 
+  group_by(playerID) %>% 
+  summarize(max_salary = max(salary, na.rm = TRUE)) %>% 
+  summarize(avg_salary = mean(max_salary, na.rm = TRUE))
+```
+
+*It turns out that the average salary of players who were inducted was $5,079,720 - $4,677,737 = $401,983 more per year. We know that we have some missing salary information, but what else could be wrong with this analysis?*
+
+
+###Retirement  
+
+One of the rules of the Hall of Fame is that players cannot be nominated until five years after they retire. Is this reflected in our data?  
+
+```{r}
+Appearances %>% 
+  # Filter Appearances against nominated
+  semi_join(nominated, by = "playerID") %>% 
+  # Find last year played by player
+  group_by(playerID) %>% 
+  summarize(last_year = max(yearID)) %>% 
+  # Join to full HallOfFame
+  left_join(HallOfFame, by = "playerID") %>% 
+  # Filter for unusual observations
+  filter(yearID <= last_year)
+```
+
+*It looks like quite a few players have been nominated before they retired, but this practice seems much less frequent in recent years.*  
+
+
+##Session info
+
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,329 @@
+---
+title: "Joining Data in R with dplyr - Mutating joins"
+author: "Guillaume Abgrall"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github # specifies the syntax highlighting style
+    css: [default, extra.css] # add your custom css, should be in same folder
+    toc: true # table of content
+    toc_depth: 3 # up to three depths of headings (specified by #, ## and ###)
+    #toc_float: true #  float the table of contents to the left of the main document content
+    number_sections: false  # if you want number sections at each table header
+    includes: # add additional files before/inside/after body of document
+      after_body: ../assets/html/footer.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T, cache=T, message=F, warning=F)
+# Load the knitr and kableExtra packages
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html")
+# Load the gapminder package
+library(gapminder)
+# Load the dpylr package
+library(dplyr)
+# Load the ggplot2 package as well
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+
+# Load source datasets
+source("create_datasets.R")
+```
+
+
+## Whats Covered
+
+  - **Mutating joins**
+  - Filtering joins and set operations
+  - Assembling data
+  - Advanced joining
+  - Case Study
+    
+## Aditional Resources
+  
+  - [R for Data Science Book](http://r4ds.had.co.nz/)
+  - [Data Wrangling Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
+  - [dplyr two table verbs vignette](https://cran.r-project.org/web/packages/dplyr/vignettes/two-table.html)
+  - [dbplyr vignette](https://cran.r-project.org/web/packages/dbplyr/vignettes/dbplyr.html)
+  
+
+***  
+# Mutating Joins
+***  
+
+## Welcome to the course!
+
+* Advantages to `dplyr` over base R `merge` function for joing data
+    + dplyr always preserves the row order
+    + dplyr has much more intuitive syntax
+    + dplyr can be applied to databases, or spark  
+* dplyr is a front end language for maniulating data that can be converted to multiple backends like SQL or spark. 
+    + This is pretty useful. Everything we cover in this class could work on a spark dataframe or a sql table
+  
+##Keys  
+
+* The Primary key needs to be unique in a table  
+* The foreign key in the second table can be duplicated  
+* second table will be matched to the primary table based on the primary key  
+* The primary key may be one, two or even more columns in the table  
+
+###Primary Keys  
+
+* What is the primary key in artists dataset?  
+    + `name`  
+  
+```{r}
+artists0 %>% 
+  head(10) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+  
+
+###Secondary Keys  
+
+* Which datasets have a primary key that matches artists$name?  
+    + `bands$name`  
+    + `songs$writer`  
+
+```{r}
+albums0 %>% 
+  head(10) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+  
+bands0 %>% 
+  head(10) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+  
+songs0 %>% 
+  head(10) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+###Multi-variable keys  
+
+* What is the primary key in artists?  
+    + The combination of `first` and `last`
+    
+```{r}
+artists %>% 
+  head(10) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+*The combination of first and last uniquely identifies each person in the dataset, just as the combination of first and last names tend to uniquely identify people in real life.*  
+
+##Joins  
+
+* Joins in dplyr will work on data frames, tibbles (tbl_df), and tbl references
+  <div style="width:500px">
+  ![](../assets/images/mutate_joins.png)
+  </div> 
+  
+###A basic join  
+
+As Garrett mentioned in the video, `left_join()` is the basic join function in `dplyr`. You can use it whenever you want to augment a data frame with information from another data frame.
+
+For example, `left_join(x, y)` joins `y` to `x`. The second dataset you specify is joined to the first dataset.   
+
+```{r}
+# Complete the code to join artists to bands
+bands2 <- left_join(bands, artists, by = c('first','last'))
+
+# Examine the results
+bands2 %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+###A second join  
+
+You should always check the output of your joins. Just because a join worked, doesn't mean that it worked as you expected.  
+
+For example, the code in the editor joins the same two datasets that you joined in the previous exercise, but it returns a different result. Can you tell what went wrong?  
+
+```{r}
+left_join(bands, artists, by = "first") %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Fix the code to recreate bands3
+left_join(bands, artists, by = c("first","last")) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+* Notice how the `last` column is pulled in as `last.x` and `last.y` if not included in the join  
+    + And how all combination of rows are created for each name that is duplicated, e.g. john  
+    
+* The easiest mistake when joining datasets is to use an incorrect combination of keys.  
+
+
+###A right join  
+
+There is more than one way to execute a left join. Knowing multiple methods will make you a more versatile data scientist, especially as you try to fit joins into pipes created with `%>%`.  
+
+In this exercise, you'll recreate bands2 once more, but this time **without** using a `left_join()`.  
+
+```{r}
+# Finish the code below to recreate bands3 with a right join
+bands2 <- left_join(bands, artists, by = c("first", "last"))
+bands3 <- right_join(artists, bands, by = c("first", "last"))
+
+# Check that bands3 is equal to bands2
+setequal(bands2, bands3)
+```
+
+*`left_join()` is equivalent to `right_join()` with the order of the datasets reversed. Notice that each used the same `by` argument.*  
+
+##Variations on joins  
+
+  - `left_join` - prioritizes left dataset  
+  - `right_join` - prioritizes right dataset  
+  - `inner_join` - only retains rows in both datasets  
+  - `full_join` - retains all rows  
+  - Use `%>%` (pipes) to string together these joins  
+  
+
+###Inner joins and full joins  
+
+You may have noticed that some of the `songs` in `songs` correspond to some of the `albums` in `albums`. Suppose you want a new dataset that contains all of the `songs` for which you have data from **both** `albums` and `songs`. How would you make it?  
+
+The `artists` and `bands `datasets also share some information. What if you want to join these two datasets in such a way that you retain all of the information available in both tables, without throwing anything away?  
+
+You can think of `inner joins` as the most strict type of join: they only retain observations that appear in both datasets. In contrast, `full joins` are the most permissive type of join: they return all of the data that appears in both datasets (often resulting in many missing values).  
+
+Recall that, `*_join(x, y)` joins `y` to `x`. The second dataset you specify is joined to the first dataset.  
+
+```{r}
+# Join albums to songs using inner_join()
+songs %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+albums %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+inner_join(songs, albums, by = "album") %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Join bands to artists using full_join()
+artists %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+bands %>% 
+  head() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+full_join(artists, bands, by = c("first","last")) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+###Pipes  
+
+You can combine `dplyr` functions together with the pipe operator, `%>%`, to build up an analysis step-by-step. `%>%` takes the result of the code that comes before it and "pipes" it into the function that comes after it as the first argument of the function.  
+
+So for example, the two pieces of code below do the same thing:  
+
+```{r, eval = FALSE}
+full_join(artists, bands, 
+          by = c("first", "last")) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+artists %>% 
+  full_join(bands, by = c("first", "last"))
+```
+
+Pipes are so efficient for multi-step analysis that you will use them for the remainder of the exercises in this course.   
+
+```{r}
+# Find guitarists in bands dataset (don't change)
+temp <- left_join(bands, artists, by = c("first", "last"))
+temp <- filter(temp, instrument == "Guitar")
+select(temp, first, last, band)
+
+# Reproduce code above using pipes
+bands %>% 
+  left_join(artists, by = c("first", "last")) %>%
+  filter(instrument == "Guitar") %>%
+  select(first, last, band)
+```
+
+
+###Practice with pipes and joins  
+
+We've created a data frame for you called `goal`. Your mission, if you choose to accept it, is to create a dataset that's identical to `goal`.  
+
+```{r}
+# Examine the contents of the goal dataset
+goal %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+
+# Create goal2 using full_join() and inner_join() 
+goal2 <- artists %>%
+  full_join(bands, by = c("first","last")) %>%
+  inner_join(songs, by = c("first","last"))
+  
+  
+# Check that goal and goal2 are the same
+setequal(goal, goal2)
+```
+
+*Remember that the order of the joins in your pipe determines the output of the pipe.*  
+
+
+###Choose your joins  
+
+You're getting the hang of pipes now! They are a very useful way to combine multiple joins to make a single dataset.  
+
+```{r}
+# Create one table that combines all information
+artists %>%
+  full_join(bands, by = c("first","last")) %>%
+  full_join(songs, by = c("first","last")) %>%
+  full_join(albums, by = c("album", "band")) %>% 
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position = "left", font_size = 11) %>%
+  row_spec(0, bold = T, color = "white", background = "#3f7689")
+```
+
+
+##Session info
+
+```{r}
+sessionInfo()
+```
