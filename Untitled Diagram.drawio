@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-03-15T08:30:57.859Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36" etag="ZQJdmjr-_z9P54kaVSRm" version="17.1.2" type="github">
+<mxfile host="app.diagrams.net" modified="2022-03-15T08:42:50.205Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.51 Safari/537.36" etag="GxXkIruM56-BW6TANPYW" version="17.1.2" type="github">
   <diagram id="VQwfta1OL1ngFvQ2oTLC" name="Page-1">
     <mxGraphModel dx="2286" dy="732" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
       <root>
@@ -176,7 +176,10 @@
         <mxCell id="JjLd1DPKK2njpRceMTh7-41" value="Primary: Guillaume Abgrall&lt;br&gt;Backup: &lt;br&gt;Simon Todd" style="whiteSpace=wrap;html=1;fillColor=#dae8fc;gradientColor=#7ea6e0;strokeColor=#6c8ebf;" vertex="1" parent="wjvx4pCfY3qMHOQfi7Cr-11">
           <mxGeometry x="550" y="221.125" width="100" height="59.25" as="geometry" />
         </mxCell>
-        <mxCell id="olOv5MucU8dO_Wtyu6DV-20" value="&lt;br&gt;&lt;br&gt;Level 1" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+        <mxCell id="JjLd1DPKK2njpRceMTh7-55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#B20000;" edge="1" parent="1" source="olOv5MucU8dO_Wtyu6DV-20" target="JjLd1DPKK2njpRceMTh7-54">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="olOv5MucU8dO_Wtyu6DV-20" value="&lt;b&gt;&lt;br&gt;&lt;br&gt;Level 1&lt;/b&gt;" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
           <mxGeometry x="-1090" y="360" width="60" height="60" as="geometry" />
         </mxCell>
         <mxCell id="JjLd1DPKK2njpRceMTh7-1" value="SPACE support" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#f5f5f5;gradientColor=#b3b3b3;strokeColor=#666666;" vertex="1" parent="1">
@@ -210,6 +213,27 @@
         </mxCell>
         <mxCell id="JjLd1DPKK2njpRceMTh7-50" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.4_point_star_2;dx=0.7;shadow=0;sketch=0;fillColor=#a20025;gradientDirection=north;strokeColor=#6F0000;fontColor=#ffffff;" vertex="1" parent="1">
           <mxGeometry x="-50" y="290" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="JjLd1DPKK2njpRceMTh7-52" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.rounded_frame;dx=10;shadow=0;sketch=0;fillColor=#0050ef;gradientDirection=north;fontColor=#ffffff;strokeColor=#001DBC;" vertex="1" parent="1">
+          <mxGeometry x="-1170" y="240" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="JjLd1DPKK2njpRceMTh7-53" value="&lt;b&gt;Check Reddesk &lt;br&gt;everyday &amp;amp; &lt;br&gt;answer or triage &lt;br&gt;questions same day&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="-1165" y="250" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="JjLd1DPKK2njpRceMTh7-57" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fillColor=#a20025;strokeColor=#B20000;" edge="1" parent="1" source="JjLd1DPKK2njpRceMTh7-54" target="JjLd1DPKK2njpRceMTh7-58">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-985" y="640" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="-985" y="610" />
+              <mxPoint x="-1060" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="JjLd1DPKK2njpRceMTh7-54" value="If level 1 actors don&#39;t know the answer, they will escalate the questions to level 2 actors in the tracker, based on questions belonging to each bucket" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="-1070" y="490" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="JjLd1DPKK2njpRceMTh7-58" value="&lt;b&gt;&lt;br&gt;&lt;br&gt;Level 2&lt;/b&gt;" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="-1090" y="640" width="60" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
